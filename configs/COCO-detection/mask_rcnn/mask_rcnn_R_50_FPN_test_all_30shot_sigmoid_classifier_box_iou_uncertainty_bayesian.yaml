@@ -1,0 +1,30 @@
+_BASE_: "../../Base-RCNN-FPN.yaml"
+MODEL:
+  WEIGHTS: "checkpoints/coco/mask_rcnn/mask_rcnn_R_50_FPN_ft_novel_1shot_combine/model_reset_combine.pth"
+  MASK_ON: True
+  BOX_IOU_ON: True
+  RESNETS:
+    DEPTH: 50
+  ROI_HEADS:
+    NUM_CLASSES: 80
+    FREEZE_FEAT: True
+    LOSS_TYPE: 'focal'
+    COMBINE_TYPE: 'sigmoid'
+    OUTPUT_LAYER: "BoxUncertaintyBayesianOutputLayers"
+    COSINE_SCALE: 5.
+    COSINE_NOVEL_ONLY: True
+  BACKBONE:
+    FREEZE: True
+  PROPOSAL_GENERATOR:
+    FREEZE: True
+DATASETS: # Does not matter since we just use this file for testing
+  TRAIN: ('coco_trainval_all_30shot',)
+  TEST: ('coco_test_all',)
+SOLVER:
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.001
+  STEPS: (14400,)
+  MAX_ITER: 16000
+  CHECKPOINT_PERIOD: 10000
+  WARMUP_ITERS: 10
+OUTPUT_DIR: "checkpoints/coco/mask_rcnn/mask_rcnn_R_50_FPN_test_all_30shot_sigmoid_classifier_box_iou_uncertainty_bayesian"

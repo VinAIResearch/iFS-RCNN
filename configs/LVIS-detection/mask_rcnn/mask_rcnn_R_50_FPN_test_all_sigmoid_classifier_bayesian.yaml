@@ -1,0 +1,39 @@
+_BASE_: "../../Base-RCNN-FPN.yaml"
+MODEL:
+  WEIGHTS: "https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl"
+  MASK_ON: True
+  RESNETS:
+    DEPTH: 50
+  ROI_HEADS:
+    NUM_CLASSES: 1230
+    SCORE_THRESH_TEST: 0.05
+    LOSS_TYPE: 'focal'
+    COMBINE_TYPE: 'sigmoid'
+    OUTPUT_LAYER: "BayesianOutputLayers"
+    COSINE_SCALE: 10.
+    FREEZE_FEAT: True
+    COSINE_NOVEL_ONLY: True
+  BACKBONE:
+    FREEZE: True
+  PROPOSAL_GENERATOR:
+    FREEZE: True
+INPUT:
+  MIN_SIZE_TRAIN: (640, 672, 704, 736, 768, 800)
+DATASETS:
+  TRAIN: ("lvis_v0.5_train_shots",)
+  TEST: ("lvis_v0.5_val",)
+TEST:
+  DETECTIONS_PER_IMAGE: 300  # LVIS allows up to 300
+DATALOADER:
+  SAMPLER_TRAIN: "RepeatFactorTrainingSampler"
+  REPEAT_THRESHOLD: 0.001
+SOLVER:
+  # BASE_LR: 0.005
+  # STEPS: (15000,)
+  # MAX_ITER: 20000
+  BASE_LR: 0.01
+  STEPS: (10000,)
+  MAX_ITER: 3000
+  CHECKPOINT_PERIOD: 5000
+  WARMUP_ITERS: 0
+OUTPUT_DIR: "checkpoints/lvis/mask_rcnn/mask_rcnn_R_50_FPN_test_all_sigmoid_classifier_bayesian"

@@ -1,0 +1,29 @@
+_BASE_: "../../Base-RCNN-FPN.yaml"
+MODEL:
+  WEIGHTS: "https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl"
+  MASK_ON: True
+  BOX_IOU_ON: True
+  RESNETS:
+    DEPTH: 50
+  ROI_HEADS:
+    NUM_CLASSES: 1230
+    SCORE_THRESH_TEST: 0.05
+    LOSS_TYPE: 'focal'
+    COMBINE_TYPE: 'sigmoid'
+    OUTPUT_LAYER: "BoxUncertaintyFastRCNNOutputLayers"
+  FREEZE_ALL: True 
+  FREEZE_ALL_BUT_BOXES: True
+INPUT:
+  MIN_SIZE_TRAIN: (640, 672, 704, 736, 768, 800)
+DATASETS:
+  TRAIN: ("lvis_v0.5_train_freq", "lvis_v0.5_train_common",)
+  TEST: ("lvis_v0.5_val",)
+TEST:
+  DETECTIONS_PER_IMAGE: 300  # LVIS allows up to 300
+SOLVER:
+  STEPS: (10000, 15000)
+  MAX_ITER: 20000
+DATALOADER:
+  SAMPLER_TRAIN: "RepeatFactorTrainingSampler"
+  REPEAT_THRESHOLD: 0.001
+OUTPUT_DIR: "checkpoints/lvis/mask_rcnn/mask_rcnn_R_50_FPN_base_sigmoid_classifier_box_iou_uncertainty"

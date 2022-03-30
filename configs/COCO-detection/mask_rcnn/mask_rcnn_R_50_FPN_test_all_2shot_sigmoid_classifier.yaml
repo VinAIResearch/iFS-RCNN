@@ -1,0 +1,26 @@
+_BASE_: "../../Base-RCNN-FPN.yaml"
+MODEL:
+  WEIGHTS: "checkpoints/coco/mask_rcnn/mask_rcnn_R_50_FPN_ft_novel_1shot_combine/model_reset_combine.pth"
+  MASK_ON: True
+  RESNETS:
+    DEPTH: 50
+  ROI_HEADS:
+    NUM_CLASSES: 80
+    FREEZE_FEAT: True
+    COMBINE_TYPE: 'sigmoid'
+    LOSS_TYPE: 'focal'
+  BACKBONE:
+    FREEZE: True
+  PROPOSAL_GENERATOR:
+    FREEZE: True
+DATASETS:
+  TRAIN: ('coco_trainval_all_2shot',)
+  TEST: ('coco_test_all',)
+SOLVER: # Does not matter since we just use this file for testing
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.001
+  STEPS: (14400,)
+  MAX_ITER: 16000
+  CHECKPOINT_PERIOD: 10000
+  WARMUP_ITERS: 10
+OUTPUT_DIR: "checkpoints/coco/mask_rcnn/mask_rcnn_R_50_FPN_test_all_2shot_sigmoid_classifier"

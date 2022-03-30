@@ -1,0 +1,18 @@
+_BASE_: "../../Base-RCNN-FPN.yaml"
+MODEL:
+  WEIGHTS: "https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl"
+  MASK_ON: True
+  RESNETS:
+    DEPTH: 50
+  ROI_HEADS:
+    NUM_CLASSES: 60
+DATASETS:
+  TRAIN: ('coco_trainval_base',)
+  TEST: ('coco_test_base',)
+SOLVER:
+  IMS_PER_BATCH: 16
+  STEPS: (85000, 100000)
+  MAX_ITER: 110000
+  # STEPS: (210000, 250000)
+  # MAX_ITER: 270000
+OUTPUT_DIR: "checkpoints/coco/mask_rcnn/mask_rcnn_R_50_FPN_base"
