@@ -1,6 +1,6 @@
 # iFS-RCNN: An Incremental Few-shot Instance Segmenter
 
-This is the official code for the CVPR 2022 paper: ["iFS-RCNN: An Incremental Few-shot Instance Segmenter"](khoi-cvpr2022-iFS-RCNN.pdf)
+This is the official code for the CVPR 2022 paper: ["iFS-RCNN: An Incremental Few-shot Instance Segmenter"](https://www.khoinguyen.org/publication/incremental-few-shot-instance-segmentation/khoi_cvpr2022_iFS_RCNN.pdf)
 
 This codebase is primarily based on this codebase of https://github.com/ucbdrive/few-shot-object-detection
 
