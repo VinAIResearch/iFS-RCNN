@@ -1,13 +1,19 @@
-# Few-Shot Object Detection (FsDet)
+# iFS-RCNN: An Incremental Few-shot Instance Segmenter
+
+This is the official code for the CVPR 2022 paper: ["iFS-RCNN: An Incremental Few-shot Instance Segmenter"](khoi-cvpr2022-iFS-RCNN.pdf)
 
 This codebase is primarily based on this codebase of https://github.com/ucbdrive/few-shot-object-detection
 
 
 ## Table of Contents
-- [Installation](#installation)
-- [Code Structure](#code-structure)
-- [Data Preparation](#data-preparation)
-- [Getting Started](#getting-started)
+- [iFS-RCNN: An Incremental Few-shot Instance Segmenter](#ifs-rcnn-an-incremental-few-shot-instance-segmenter)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Code Structure](#code-structure)
+  - [Data Preparation](#data-preparation)
+  - [Getting Started](#getting-started)
+    - [Training & Evaluation in Command Line](#training--evaluation-in-command-line)
+    - [Multiple Runs](#multiple-runs)
 
 
 ## Installation
@@ -20,7 +26,7 @@ This codebase is primarily based on this codebase of https://github.com/ucbdrive
 * CUDA 10.0, 10.1, 10.2
 * GCC >= 4.9
 
-**Build FsDet**
+**Build fsdet**
 * Create a virtual environment.
 ```angular2html
 python3 -m venv fsdet
@@ -50,7 +56,7 @@ python3 -m pip install -r requirements.txt
 ## Code Structure
 - **configs**: Configuration files
 - **datasets**: Dataset files (see [Data Preparation](#data-preparation) for more details)
-- **fsdet**
+- **iFS-RCNN**
   - **checkpoint**: Checkpoint code.
   - **config**: Configuration code and default configurations.
   - **engine**: Contains training and evaluation loops and hooks.
