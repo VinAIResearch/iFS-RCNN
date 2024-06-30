@@ -1,22 +1,38 @@
-# iFS-RCNN: An Incremental Few-shot Instance Segmenter
-
-This is the official code for the CVPR 2022 paper: ["iFS-RCNN: An Incremental Few-shot Instance Segmenter"](https://arxiv.org/pdf/2205.15562.pdf)
-
-This codebase is primarily based on this codebase of https://github.com/ucbdrive/few-shot-object-detection
-
-
 ## Table of Contents
-- [iFS-RCNN: An Incremental Few-shot Instance Segmenter](#ifs-rcnn-an-incremental-few-shot-instance-segmenter)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Code Structure](#code-structure)
-  - [Data Preparation](#data-preparation)
-  - [Getting Started](#getting-started)
-    - [Training & Evaluation in Command Line](#training--evaluation-in-command-line)
-    - [Multiple Runs](#multiple-runs)
+- [Table of Contents](#table-of-contents)
+- [Installation](#installation)
+- [Code Structure](#code-structure)
+- [Data Preparation](#data-preparation)
+- [Getting Started](#getting-started)
+  - [Training & Evaluation in Command Line](#training--evaluation-in-command-line)
+  - [Multiple Runs](#multiple-runs)
+
+
+# **PyTorch implementation of iFS-RCNN: An Incremental Few-shot Instance Segmenter (CVPR 2022)**
+<a href="https://arxiv.org/abs/2205.15562"><img src="https://img.shields.io/badge/arxiv-2205.15562-red?style=for-the-badge"></a>
+
+[Khoi Nguyen (VinAI Research)](https://khoinguyen.org)
+[Sinisa Todorovic (Oregon State University)](https://web.engr.oregonstate.edu/~sinisa/)
+
+> **Abstract:** 
+This paper addresses incremental few-shot instance segmentation, where a few examples of new object classes arrive when access to training examples of old classes is not available anymore, and the goal is to perform well on both old and new classes. We make two contributions by extending the common Mask-RCNN framework in its second stage -- namely, we specify a new object class classifier based on the probit function and a new uncertainty-guided bounding-box predictor. The former leverages Bayesian learning to address a paucity of training examples of new classes. The latter learns not only to predict object bounding boxes but also to estimate the uncertainty of the prediction as guidance for bounding box refinement. We also specify two new loss functions in terms of the estimated object-class distribution and bounding-box uncertainty. Our contributions produce significant performance gains on the COCO dataset over the state of the art -- specifically, the gain of +6 on the new classes and +16 on the old classes in the AP instance segmentation metric. Furthermore, we are the first to evaluate the incremental few-shot setting on the more challenging LVIS dataset.
+
+![teaser.png](./docs/main.png)
+Please **CITE** our paper whenever this repository is used to help produce published results or incorporated into other software.
+```bibtex
+@inproceedings{nguyen2022ifs,
+  title={ifs-rcnn: An incremental few-shot instance segmenter},
+  author={Nguyen, Khoi and Todorovic, Sinisa},
+  booktitle={Proceedings of the IEEE/CVF conference on computer vision and pattern recognition},
+  pages={7010--7019},
+  year={2022}
+}
+```
 
 
 ## Installation
+
+This codebase is primarily based on this codebase of https://github.com/ucbdrive/few-shot-object-detection
 
 **Requirements**
 
@@ -94,3 +110,11 @@ See [datasets/README.md](datasets/README.md) for more details.
 + For multiple running experiments, refer to [run_experiments.sh](run_experiments.sh) script
 
 + To aggregate results of multiple runs, refer to [aggregate_seeds.sh](aggregate_seeds.sh) script
+
+## Acknowledgments
+
+This repo is built upon [fsdet](https://github.com/ucbdrive/few-shot-object-detection)
+
+## Contacts
+
+If you have any questions or suggestions about this repo, please feel free to contact me (ducminhkhoi@gmail.com).
