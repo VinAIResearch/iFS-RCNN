@@ -18,7 +18,9 @@
 This paper addresses incremental few-shot instance segmentation, where a few examples of new object classes arrive when access to training examples of old classes is not available anymore, and the goal is to perform well on both old and new classes. We make two contributions by extending the common Mask-RCNN framework in its second stage -- namely, we specify a new object class classifier based on the probit function and a new uncertainty-guided bounding-box predictor. The former leverages Bayesian learning to address a paucity of training examples of new classes. The latter learns not only to predict object bounding boxes but also to estimate the uncertainty of the prediction as guidance for bounding box refinement. We also specify two new loss functions in terms of the estimated object-class distribution and bounding-box uncertainty. Our contributions produce significant performance gains on the COCO dataset over the state of the art -- specifically, the gain of +6 on the new classes and +16 on the old classes in the AP instance segmentation metric. Furthermore, we are the first to evaluate the incremental few-shot setting on the more challenging LVIS dataset.
 
 ![teaser.png](./docs/main.png)
-Please **CITE** our paper whenever this repository is used to help produce published results or incorporated into other software.
+
+Details of the model architecture and experimental results can be found in our [following paper](https://arxiv.org/abs/2205.15562):
+
 ```bibtex
 @inproceedings{nguyen2022ifs,
   title={ifs-rcnn: An incremental few-shot instance segmenter},
@@ -28,6 +30,9 @@ Please **CITE** our paper whenever this repository is used to help produce publi
   year={2022}
 }
 ```
+
+Please **CITE** our paper whenever this repository is used to help produce published results or incorporated into other software.
+
 
 
 ## Installation
