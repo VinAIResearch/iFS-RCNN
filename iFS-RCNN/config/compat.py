@@ -22,6 +22,7 @@ from typing import List, Optional, Tuple
 from .config import CfgNode as CN
 from .defaults import _CC as _C
 
+
 __all__ = ["upgrade_config", "downgrade_config"]
 
 
@@ -36,9 +37,7 @@ def upgrade_config(cfg: CN, to_version: Optional[int] = None) -> CN:
     if to_version is None:
         to_version = _C.VERSION
 
-    assert cfg.VERSION <= to_version, "Cannot upgrade from v{} to v{}!".format(
-        cfg.VERSION, to_version
-    )
+    assert cfg.VERSION <= to_version, "Cannot upgrade from v{} to v{}!".format(cfg.VERSION, to_version)
     for k in range(cfg.VERSION, to_version):
         converter = globals()["ConverterV" + str(k + 1)]
         converter.upgrade(cfg)
@@ -61,9 +60,7 @@ def downgrade_config(cfg: CN, to_version: int) -> CN:
         in the old version when a general downgrade is not possible.
     """
     cfg = cfg.clone()
-    assert (
-        cfg.VERSION >= to_version
-    ), "Cannot downgrade from v{} to v{}!".format(cfg.VERSION, to_version)
+    assert cfg.VERSION >= to_version, "Cannot downgrade from v{} to v{}!".format(cfg.VERSION, to_version)
     for k in range(cfg.VERSION, to_version, -1):
         converter = globals()["ConverterV" + str(k)]
         converter.downgrade(cfg)
@@ -93,17 +90,11 @@ def guess_version(cfg: CN, filename: str) -> int:
         ret = 1
 
     if ret is not None:
-        logger.warning(
-            "Config '{}' has no VERSION. Assuming it to be v{}.".format(
-                filename, ret
-            )
-        )
+        logger.warning("Config '{}' has no VERSION. Assuming it to be v{}.".format(filename, ret))
     else:
         ret = _C.VERSION
         logger.warning(
-            "Config '{}' has no VERSION. Assuming it to be compatible with latest v{}.".format(
-                filename, ret
-            )
+            "Config '{}' has no VERSION. Assuming it to be compatible with latest v{}.".format(filename, ret)
         )
     return ret
 
@@ -143,9 +134,7 @@ class _RenameConverter:
     A converter that handles simple rename.
     """
 
-    RENAME: List[
-        Tuple[str, str]
-    ] = []  # list of tuples of (old name, new name)
+    RENAME: List[Tuple[str, str]] = []  # list of tuples of (old name, new name)
 
     @classmethod
     def upgrade(cls, cfg: CN) -> None:
@@ -238,9 +227,7 @@ class ConverterV2(_RenameConverter):
                 "MODEL.RPN.ANCHOR_ASPECT_RATIOS",
                 "MODEL.ANCHOR_GENERATOR.ASPECT_RATIOS",
             )
-            _rename(
-                cfg, "MODEL.RPN.ANCHOR_SIZES", "MODEL.ANCHOR_GENERATOR.SIZES"
-            )
+            _rename(cfg, "MODEL.RPN.ANCHOR_SIZES", "MODEL.ANCHOR_GENERATOR.SIZES")
             del cfg["MODEL"]["RETINANET"]["ANCHOR_SIZES"]
             del cfg["MODEL"]["RETINANET"]["ANCHOR_ASPECT_RATIOS"]
         del cfg["MODEL"]["RETINANET"]["ANCHOR_STRIDES"]
@@ -255,10 +242,6 @@ class ConverterV2(_RenameConverter):
             "MODEL.RPN.ANCHOR_ASPECT_RATIOS",
         )
         _rename(cfg, "MODEL.ANCHOR_GENERATOR.SIZES", "MODEL.RPN.ANCHOR_SIZES")
-        cfg.MODEL.RETINANET.ANCHOR_ASPECT_RATIOS = (
-            cfg.MODEL.RPN.ANCHOR_ASPECT_RATIOS
-        )
+        cfg.MODEL.RETINANET.ANCHOR_ASPECT_RATIOS = cfg.MODEL.RPN.ANCHOR_ASPECT_RATIOS
         cfg.MODEL.RETINANET.ANCHOR_SIZES = cfg.MODEL.RPN.ANCHOR_SIZES
-        cfg.MODEL.RETINANET.ANCHOR_STRIDES = (
-            []
-        )  # this is not used anywhere in any version
+        cfg.MODEL.RETINANET.ANCHOR_STRIDES = []  # this is not used anywhere in any version

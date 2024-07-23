@@ -1,13 +1,14 @@
-import numpy as np
-from fvcore.common.file_io import PathManager
-from pycocotools.coco import COCO
-
 import contextlib
 import io
 import os
+
+import numpy as np
+import pycocotools.mask as mask_util
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
-import pycocotools.mask as mask_util
+from fvcore.common.file_io import PathManager
+from pycocotools.coco import COCO
+
 
 """
 This file contains functions to parse COCO-format annotations into dicts in "Detectron2 format".
@@ -46,9 +47,7 @@ def load_coco_json(json_file, image_root, metadata, dataset_name):
         else:
             shot = dataset_name.split("_")[-1].split("shot")[0]
         for idx, cls in enumerate(metadata["thing_classes"]):
-            json_file = os.path.join(
-                split_dir, "full_box_{}shot_{}_trainval.json".format(shot, cls)
-            )
+            json_file = os.path.join(split_dir, "full_box_{}shot_{}_trainval.json".format(shot, cls))
             json_file = PathManager.get_local_path(json_file)
             with contextlib.redirect_stdout(io.StringIO()):
                 coco_api = COCO(json_file)
@@ -69,17 +68,15 @@ def load_coco_json(json_file, image_root, metadata, dataset_name):
 
     dataset_dicts = []
     # ann_keys = ["iscrowd", "bbox", "category_id"]
-    ann_keys = ["iscrowd", "bbox", "category_id", "segmentation"] # newly added for mask
+    ann_keys = ["iscrowd", "bbox", "category_id", "segmentation"]  # newly added for mask
 
     if is_shots:
         for _, fileids_ in fileids.items():
             dicts = []
-            for (img_dict, anno_dict_list) in fileids_:
+            for img_dict, anno_dict_list in fileids_:
                 for anno in anno_dict_list:
                     record = {}
-                    record["file_name"] = os.path.join(
-                        image_root, img_dict["file_name"]
-                    )
+                    record["file_name"] = os.path.join(image_root, img_dict["file_name"])
                     record["height"] = img_dict["height"]
                     record["width"] = img_dict["width"]
                     image_id = record["image_id"] = img_dict["id"]
@@ -91,8 +88,8 @@ def load_coco_json(json_file, image_root, metadata, dataset_name):
 
                     obj["bbox_mode"] = BoxMode.XYWH_ABS
                     obj["category_id"] = id_map[obj["category_id"]]
-                    
-                    record['anno_id'] = anno['id']
+
+                    record["anno_id"] = anno["id"]
 
                     record["annotations"] = [obj]
                     dicts.append(record)
@@ -100,11 +97,9 @@ def load_coco_json(json_file, image_root, metadata, dataset_name):
                 dicts = np.random.choice(dicts, int(shot), replace=False)
             dataset_dicts.extend(dicts)
     else:
-        for (img_dict, anno_dict_list) in imgs_anns:
+        for img_dict, anno_dict_list in imgs_anns:
             record = {}
-            record["file_name"] = os.path.join(
-                image_root, img_dict["file_name"]
-            )
+            record["file_name"] = os.path.join(image_root, img_dict["file_name"])
             record["height"] = img_dict["height"]
             record["width"] = img_dict["width"]
             image_id = record["image_id"] = img_dict["id"]
@@ -126,7 +121,7 @@ def load_coco_json(json_file, image_root, metadata, dataset_name):
                         # filter out invalid polygons (< 3 points)
                         segm = [poly for poly in segm if len(poly) % 2 == 0 and len(poly) >= 6]
                         if len(segm) == 0:
-                            num_instances_without_valid_segmentation += 1
+                            # num_instances_without_valid_segmentation += 1
                             continue  # ignore this instance
                     obj["segmentation"] = segm
 
@@ -148,9 +143,7 @@ def register_meta_coco(name, metadata, imgdir, annofile):
 
     if "_base" in name or "_novel" in name:
         split = "base" if "_base" in name else "novel"
-        metadata["thing_dataset_id_to_contiguous_id"] = metadata[
-            "{}_dataset_id_to_contiguous_id".format(split)
-        ]
+        metadata["thing_dataset_id_to_contiguous_id"] = metadata["{}_dataset_id_to_contiguous_id".format(split)]
         metadata["thing_classes"] = metadata["{}_classes".format(split)]
 
     MetadataCatalog.get(name).set(

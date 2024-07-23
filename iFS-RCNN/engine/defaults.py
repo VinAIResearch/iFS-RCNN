@@ -10,41 +10,27 @@ import argparse
 import logging
 import os
 from collections import OrderedDict
-import torch
-from fvcore.common.file_io import PathManager
-from fvcore.nn.precise_bn import get_bn_modules
-from torch.nn.parallel import DistributedDataParallel
 
 import detectron2.data.transforms as T
-from fsdet.checkpoint import DetectionCheckpointer
-from fsdet.engine.hooks import EvalHookFsdet
-from fsdet.evaluation import (
-    DatasetEvaluator,
-    inference_on_dataset,
-    print_csv_format,
-    verify_results,
-)
-from fsdet.modeling import build_model
-from detectron2.data import (
-    MetadataCatalog,
-    build_detection_test_loader,
-    build_detection_train_loader,
-)
-from detectron2.engine import hooks, SimpleTrainer
+import torch
+from detectron2.data import MetadataCatalog, build_detection_test_loader, build_detection_train_loader
+from detectron2.data.dataset_mapper import DatasetMapper
+from detectron2.engine import SimpleTrainer, hooks
 from detectron2.solver import build_lr_scheduler, build_optimizer
 from detectron2.utils import comm
 from detectron2.utils.collect_env import collect_env_info
 from detectron2.utils.env import seed_all_rng
-from detectron2.utils.events import (
-    CommonMetricPrinter,
-    JSONWriter,
-    TensorboardXWriter,
-)
-
+from detectron2.utils.events import CommonMetricPrinter, JSONWriter, TensorboardXWriter
 from detectron2.utils.logger import setup_logger
-from detectron2.data.dataset_mapper import DatasetMapper
+from fsdet.checkpoint import DetectionCheckpointer
+from fsdet.data import *  # noqa: F403,F401
+from fsdet.engine.hooks import EvalHookFsdet
+from fsdet.evaluation import DatasetEvaluator, inference_on_dataset, print_csv_format, verify_results
+from fsdet.modeling import build_model
+from fvcore.common.file_io import PathManager
+from fvcore.nn.precise_bn import get_bn_modules
+from torch.nn.parallel import DistributedDataParallel
 
-from fsdet.data import *
 
 __all__ = [
     "default_argument_parser",
@@ -73,9 +59,7 @@ def default_argument_parser():
         action="store_true",
         help="whether to attempt to resume from the checkpoint directory",
     )
-    parser.add_argument(
-        "--eval-only", action="store_true", help="evaluate last checkpoint"
-    )
+    parser.add_argument("--eval-only", action="store_true", help="evaluate last checkpoint")
     parser.add_argument(
         "--eval-all",
         action="store_true",
@@ -104,9 +88,7 @@ def default_argument_parser():
         default=-1,
         help="ending iteration for evaluation",
     )
-    parser.add_argument(
-        "--num-gpus", type=int, default=1, help="number of gpus *per machine*"
-    )
+    parser.add_argument("--num-gpus", type=int, default=1, help="number of gpus *per machine*")
     parser.add_argument("--num-machines", type=int, default=1)
     parser.add_argument(
         "--machine-rank",
@@ -118,10 +100,8 @@ def default_argument_parser():
     # PyTorch still may leave orphan processes in multi-gpu training.
     # Therefore we use a deterministic way to obtain port,
     # so that users are aware of orphan processes by seeing the port occupied.
-    port = 2 ** 15 + 2 ** 14 + hash(os.getuid()) % 2 ** 14
-    parser.add_argument(
-        "--dist-url", default="tcp://127.0.0.1:{}".format(port)
-    )
+    port = 2**15 + 2**14 + hash(os.getuid()) % 2**14
+    parser.add_argument("--dist-url", default="tcp://127.0.0.1:{}".format(port))
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line",
@@ -152,11 +132,7 @@ def default_setup(cfg, args):
     setup_logger(output_dir, distributed_rank=rank, name="fsdet")
     logger = setup_logger(output_dir, distributed_rank=rank)
 
-    logger.info(
-        "Rank of current process: {}. World size: {}".format(
-            rank, comm.get_world_size()
-        )
-    )
+    logger.info("Rank of current process: {}. World size: {}".format(rank, comm.get_world_size()))
     if not cfg.MUTE_HEADER:
         logger.info("Environment info:\n" + collect_env_info())
 
@@ -241,9 +217,7 @@ class DefaultPredictor:
             # whether the model expects BGR inputs or RGB
             original_image = original_image[:, :, ::-1]
         height, width = original_image.shape[:2]
-        image = self.transform_gen.get_transform(original_image).apply_image(
-            original_image
-        )
+        image = self.transform_gen.get_transform(original_image).apply_image(original_image)
         image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
 
         inputs = {"image": image, "height": height, "width": width}
@@ -345,10 +319,7 @@ class DefaultTrainer(SimpleTrainer):
         # The checkpoint stores the training iteration that just finished, thus we start
         # at the next iteration (or iter zero if there's no checkpoint).
         self.start_iter = (
-            self.checkpointer.resume_or_load(
-                self.cfg.MODEL.WEIGHTS, resume=resume
-            ).get("iteration", -1)
-            + 1
+            self.checkpointer.resume_or_load(self.cfg.MODEL.WEIGHTS, resume=resume).get("iteration", -1) + 1
         )
 
     def build_hooks(self):
@@ -361,23 +332,23 @@ class DefaultTrainer(SimpleTrainer):
         """
         cfg = self.cfg.clone()
         cfg.defrost()
-        cfg.DATALOADER.NUM_WORKERS = (
-            0  # save some memory and time for PreciseBN
-        )
+        cfg.DATALOADER.NUM_WORKERS = 0  # save some memory and time for PreciseBN
 
         ret = [
             hooks.IterationTimer(),
             hooks.LRScheduler(self.optimizer, self.scheduler),
-            hooks.PreciseBN(
-                # Run at the same freq as (but before) evaluation.
-                cfg.TEST.EVAL_PERIOD,
-                self.model,
-                # Build a new data loader to not affect training
-                self.build_train_loader(cfg),
-                cfg.TEST.PRECISE_BN.NUM_ITER,
-            )
-            if cfg.TEST.PRECISE_BN.ENABLED and get_bn_modules(self.model)
-            else None,
+            (
+                hooks.PreciseBN(
+                    # Run at the same freq as (but before) evaluation.
+                    cfg.TEST.EVAL_PERIOD,
+                    self.model,
+                    # Build a new data loader to not affect training
+                    self.build_train_loader(cfg),
+                    cfg.TEST.PRECISE_BN.NUM_ITER,
+                )
+                if cfg.TEST.PRECISE_BN.ENABLED and get_bn_modules(self.model)
+                else None
+            ),
         ]
 
         # Do PreciseBN before checkpointer, because it updates the model and need to
@@ -385,11 +356,7 @@ class DefaultTrainer(SimpleTrainer):
         # This is not always the best: if checkpointing has a different frequency,
         # some checkpoints may have more precise statistics than others.
         if comm.is_main_process():
-            ret.append(
-                hooks.PeriodicCheckpointer(
-                    self.checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD
-                )
-            )
+            ret.append(hooks.PeriodicCheckpointer(self.checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD))
 
         def test_and_save_results():
             self._last_eval_results = self.test(self.cfg, self.model)
@@ -397,8 +364,7 @@ class DefaultTrainer(SimpleTrainer):
 
         # Do evaluation after checkpointer, because then if it fails,
         # we can use the saved checkpoint to debug.
-        ret.append(EvalHookFsdet(
-            cfg.TEST.EVAL_PERIOD, test_and_save_results, self.cfg))
+        ret.append(EvalHookFsdet(cfg.TEST.EVAL_PERIOD, test_and_save_results, self.cfg))
 
         if comm.is_main_process():
             # run writers in the end, so that evaluation metrics are written
@@ -501,7 +467,7 @@ class DefaultTrainer(SimpleTrainer):
         It now calls :func:`fsdet.data.build_detection_test_loader`.
         Overwrite it if you'd like a different data loader.
         """
-        if cfg.MODEL.EXTRACT_MODE: # TODO New here
+        if cfg.MODEL.EXTRACT_MODE:  # TODO New here
             mapper = DatasetMapper(cfg, True)
             mapper.augmentations = DatasetMapper(cfg, False).augmentations
             return build_detection_test_loader(cfg, dataset_name, mapper)
@@ -538,9 +504,9 @@ class DefaultTrainer(SimpleTrainer):
         if isinstance(evaluators, DatasetEvaluator):
             evaluators = [evaluators]
         if evaluators is not None:
-            assert len(cfg.DATASETS.TEST) == len(
-                evaluators
-            ), "{} != {}".format(len(cfg.DATASETS.TEST), len(evaluators))
+            assert len(cfg.DATASETS.TEST) == len(evaluators), "{} != {}".format(
+                len(cfg.DATASETS.TEST), len(evaluators)
+            )
 
         results = OrderedDict()
         for idx, dataset_name in enumerate(cfg.DATASETS.TEST):
@@ -564,14 +530,8 @@ class DefaultTrainer(SimpleTrainer):
             if comm.is_main_process():
                 assert isinstance(
                     results_i, dict
-                ), "Evaluator must return a dict on the main process. Got {} instead.".format(
-                    results_i
-                )
-                logger.info(
-                    "Evaluation results for {} in csv format:".format(
-                        dataset_name
-                    )
-                )
+                ), "Evaluator must return a dict on the main process. Got {} instead.".format(results_i)
+                logger.info("Evaluation results for {} in csv format:".format(dataset_name))
                 print_csv_format(results_i)
 
         if len(results) == 1:

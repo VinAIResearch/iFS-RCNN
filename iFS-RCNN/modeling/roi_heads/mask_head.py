@@ -1,16 +1,17 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import math
 from typing import List
+
 import fvcore.nn.weight_init as weight_init
 import torch
-from torch import nn
-from torch.nn import functional as F
-
 from detectron2.config import configurable
 from detectron2.layers import Conv2d, ConvTranspose2d, ShapeSpec, cat, get_norm
 from detectron2.structures import Instances
 from detectron2.utils.events import get_event_storage
 from detectron2.utils.registry import Registry
-import math
+from torch import nn
+from torch.nn import functional as F
+
 
 __all__ = [
     "BaseMaskRCNNHead",
@@ -88,9 +89,7 @@ def mask_rcnn_loss(pred_mask_logits: torch.Tensor, instances: List[Instances], v
     mask_incorrect = (pred_mask_logits > 0.0) != gt_masks_bool
     mask_accuracy = 1 - (mask_incorrect.sum().item() / max(mask_incorrect.numel(), 1.0))
     num_positive = gt_masks_bool.sum().item()
-    false_positive = (mask_incorrect & ~gt_masks_bool).sum().item() / max(
-        gt_masks_bool.numel() - num_positive, 1.0
-    )
+    false_positive = (mask_incorrect & ~gt_masks_bool).sum().item() / max(gt_masks_bool.numel() - num_positive, 1.0)
     false_negative = (mask_incorrect & gt_masks_bool).sum().item() / max(num_positive, 1.0)
 
     storage = get_event_storage()
@@ -162,7 +161,7 @@ class BaseMaskRCNNHead(nn.Module):
         """
         super().__init__()
         self.vis_period = vis_period
-        self.bayesian = False 
+        self.bayesian = False
 
     @classmethod
     def from_config(cls, cfg, input_shape):
@@ -183,10 +182,10 @@ class BaseMaskRCNNHead(nn.Module):
         """
         x = self.layers(x)
         if self.training:
-            return_losses =  {"loss_mask": mask_rcnn_loss(x, instances, self.vis_period)}
+            return_losses = {"loss_mask": mask_rcnn_loss(x, instances, self.vis_period)}
 
             if self.bayesian:
-                return_losses['loss_mask_reg'] = self.var.mean()
+                return_losses["loss_mask_reg"] = self.var.mean()
                 # print(self.var.min().item(), self.var.max().item())
             return return_losses
         else:
@@ -226,7 +225,7 @@ class MaskRCNNConvUpsampleHead(BaseMaskRCNNHead, nn.Sequential):
         assert len(conv_dims) >= 1, "conv_dims have to be non-empty!"
 
         self.conv_norm_relus = []
-        
+
         cur_channels = input_shape.channels[0]
         for k, conv_dim in enumerate(conv_dims[:-1]):
             conv = Conv2d(
@@ -243,9 +242,7 @@ class MaskRCNNConvUpsampleHead(BaseMaskRCNNHead, nn.Sequential):
             self.conv_norm_relus.append(conv)
             cur_channels = conv_dim
 
-        self.deconv = ConvTranspose2d(
-            cur_channels, conv_dims[-1], kernel_size=2, stride=2, padding=0
-        )
+        self.deconv = ConvTranspose2d(cur_channels, conv_dims[-1], kernel_size=2, stride=2, padding=0)
         self.add_module("deconv_relu", nn.ReLU())
         cur_channels = conv_dims[-1]
 
@@ -260,8 +257,8 @@ class MaskRCNNConvUpsampleHead(BaseMaskRCNNHead, nn.Sequential):
 
     def set_freeze(self):
         for param in self.parameters():
-            param.requires_grad = False 
-        
+            param.requires_grad = False
+
         for param in self.predictor.parameters():
             param.requires_grad = True
 
@@ -312,7 +309,7 @@ class UncertaintyMaskRCNNConvUpsampleHead(BaseMaskRCNNHead, nn.Sequential):
         assert len(conv_dims) >= 1, "conv_dims have to be non-empty!"
 
         self.conv_norm_relus = []
-        
+
         cur_channels = input_shape.channels[0]
         for k, conv_dim in enumerate(conv_dims[:-1]):
             conv = Conv2d(
@@ -329,13 +326,11 @@ class UncertaintyMaskRCNNConvUpsampleHead(BaseMaskRCNNHead, nn.Sequential):
             self.conv_norm_relus.append(conv)
             cur_channels = conv_dim
 
-        self.deconv = ConvTranspose2d(
-            cur_channels, conv_dims[-1], kernel_size=2, stride=2, padding=0
-        )
+        self.deconv = ConvTranspose2d(cur_channels, conv_dims[-1], kernel_size=2, stride=2, padding=0)
         self.add_module("deconv_relu", nn.ReLU())
         cur_channels = conv_dims[-1]
 
-        self.predictor = Conv2d(cur_channels, num_classes*2, kernel_size=1, stride=1, padding=0)
+        self.predictor = Conv2d(cur_channels, num_classes * 2, kernel_size=1, stride=1, padding=0)
 
         for layer in self.conv_norm_relus + [self.deconv]:
             weight_init.c2_msra_fill(layer)
@@ -346,8 +341,8 @@ class UncertaintyMaskRCNNConvUpsampleHead(BaseMaskRCNNHead, nn.Sequential):
 
     def set_freeze(self):
         for param in self.parameters():
-            param.requires_grad = False 
-        
+            param.requires_grad = False
+
         for param in self.predictor.parameters():
             param.requires_grad = True
 
@@ -401,20 +396,20 @@ class UncertaintyMaskRCNNConvUpsampleHead(BaseMaskRCNNHead, nn.Sequential):
             gt_classes = cat(gt_classes, dim=0)
             pred_mask_logits = pred_mask_logits[indices, gt_classes]
 
-        if gt_masks.dtype == torch.bool:
-            gt_masks_bool = gt_masks
-        else:
-            # Here we allow gt_masks to be float as well (depend on the implementation of rasterize())
-            gt_masks_bool = gt_masks > 0.5
+        # if gt_masks.dtype == torch.bool:
+        #     gt_masks_bool = gt_masks
+        # else:
+        #     # Here we allow gt_masks to be float as well (depend on the implementation of rasterize())
+        #     gt_masks_bool = gt_masks > 0.5
         gt_masks = gt_masks.to(dtype=torch.float32)
 
         mean, var = pred_mask_logits[:, 0], pred_mask_logits[:, 1]
         mean = mean.sigmoid()
-        var = F.softplus(var) + 1e-6 # consider sigmoid here
+        var = F.softplus(var) + 1e-6  # consider sigmoid here
 
-        mask_loss = 1/2 * (mean - gt_masks).pow(2) / var + 1/2 * var
+        mask_loss = 1 / 2 * (mean - gt_masks).pow(2) / var + 1 / 2 * var
 
-        return {"loss_mask": mask_loss.mean()} 
+        return {"loss_mask": mask_loss.mean()}
 
     def inference(self, pred_mask_logits, pred_instances):
         cls_agnostic_mask = pred_mask_logits.size(1) == 1
@@ -490,7 +485,7 @@ class BayesianMaskRCNNConvUpsampleHead(BaseMaskRCNNHead):
 
         self.conv_norm_relus = []
         self.bayesian = True
-        
+
         cur_channels = input_shape.channels[0]
         for k, conv_dim in enumerate(conv_dims[:-1]):
             conv = Conv2d(
@@ -507,15 +502,13 @@ class BayesianMaskRCNNConvUpsampleHead(BaseMaskRCNNHead):
             self.conv_norm_relus.append(conv)
             cur_channels = conv_dim
 
-        self.deconv = ConvTranspose2d(
-            cur_channels, conv_dims[-1], kernel_size=2, stride=2, padding=0
-        )
+        self.deconv = ConvTranspose2d(cur_channels, conv_dims[-1], kernel_size=2, stride=2, padding=0)
         self.add_module("deconv_relu", nn.ReLU())
         cur_channels = conv_dims[-1]
 
         self.predictor = Conv2d(cur_channels, num_classes, kernel_size=1, stride=1, padding=0)
         self.predictor_sigma = Conv2d(cur_channels, num_classes, kernel_size=1, stride=1, padding=0)
-        nn.init.constant_(self.predictor_sigma.weight, math.log(math.e-1))
+        nn.init.constant_(self.predictor_sigma.weight, math.log(math.e - 1))
         nn.init.constant_(self.predictor_sigma.bias, 6)
 
         self.scale = scale
@@ -529,8 +522,8 @@ class BayesianMaskRCNNConvUpsampleHead(BaseMaskRCNNHead):
 
     def set_freeze(self):
         for param in self.parameters():
-            param.requires_grad = False 
-        
+            param.requires_grad = False
+
         for param in self.predictor.parameters():
             param.requires_grad = True
 
@@ -547,7 +540,7 @@ class BayesianMaskRCNNConvUpsampleHead(BaseMaskRCNNHead):
             conv_norm=cfg.MODEL.ROI_MASK_HEAD.NORM,
             input_shape=input_shape,
         )
-        
+
         ret["scale"] = cfg.MODEL.ROI_HEADS.COSINE_SCALE
 
         if cfg.MODEL.ROI_MASK_HEAD.CLS_AGNOSTIC_MASK:
@@ -559,7 +552,10 @@ class BayesianMaskRCNNConvUpsampleHead(BaseMaskRCNNHead):
     def loss(self, pred_mask_logits, instances):
         # print(self.var.min().item(), self.var.max().item())
 
-        return {"loss_mask": mask_rcnn_loss(pred_mask_logits, instances, self.vis_period), 'loss_mask_reg': self.var.mean()} 
+        return {
+            "loss_mask": mask_rcnn_loss(pred_mask_logits, instances, self.vis_period),
+            "loss_mask_reg": self.var.mean(),
+        }
 
     def inference(self, pred_mask_logits, pred_instances):
         cls_agnostic_mask = pred_mask_logits.size(1) == 1
@@ -611,15 +607,15 @@ class BayesianMaskRCNNConvUpsampleHead(BaseMaskRCNNHead):
 
         # some constraints on x, weight to be non-negative to form parts
 
-        m = (x * weight).sum(2) # E[a]: predicted map
-        v = (x * x * self.var).sum(2) # V[a]: uncertainty map
-        k = (1 + math.pi * v / 8).pow(-1/2)
+        m = (x * weight).sum(2)  # E[a]: predicted map
+        v = (x * x * self.var).sum(2)  # V[a]: uncertainty map
+        k = (1 + math.pi * v / 8).pow(-1 / 2)
 
         out = k * m * self.scale
 
         if not self.training:
             out = torch.stack([out, k], 2)
-            
+
         return out
 
 

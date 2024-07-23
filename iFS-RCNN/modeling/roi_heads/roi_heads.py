@@ -1,10 +1,12 @@
 """Implement ROI_heads."""
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import functional as F
 
 import logging
+
+# import random
+from typing import Dict
+
+import numpy as np
+import torch
 from detectron2.layers import ShapeSpec
 from detectron2.modeling.backbone.resnet import BottleneckBlock, make_stage
 from detectron2.modeling.box_regression import Box2BoxTransform
@@ -13,15 +15,18 @@ from detectron2.modeling.poolers import ROIPooler
 from detectron2.modeling.proposal_generator.proposal_utils import add_ground_truth_to_proposals
 from detectron2.modeling.sampling import subsample_labels
 from detectron2.structures import Boxes, Instances, pairwise_iou
+from detectron2.structures.boxes import matched_boxlist_iou
 from detectron2.utils.events import get_event_storage
 from detectron2.utils.registry import Registry
-from typing import Dict
+from torch import nn
 
 from .box_head import build_box_head
-from .fast_rcnn import ROI_HEADS_OUTPUT_REGISTRY, FastRCNNOutputLayers, FastRCNNOutputs
+from .fast_rcnn import ROI_HEADS_OUTPUT_REGISTRY, FastRCNNOutputs  # , FastRCNNOutputLayers
 from .mask_head import build_mask_head
-from detectron2.structures.boxes import matched_boxlist_iou
-import random
+
+
+# from torch.nn import functional as F
+
 
 ROI_HEADS_REGISTRY = Registry("ROI_HEADS")
 ROI_HEADS_REGISTRY.__doc__ = """
@@ -82,18 +87,18 @@ class ROIHeads(torch.nn.Module):
     def __init__(self, cfg, input_shape: Dict[str, ShapeSpec]):
         super(ROIHeads, self).__init__()
         # fmt: off
-        self.batch_size_per_image     = cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE
+        self.batch_size_per_image = cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE
         self.positive_sample_fraction = cfg.MODEL.ROI_HEADS.POSITIVE_FRACTION
-        self.test_score_thresh        = cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST
-        self.test_nms_thresh          = cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST
-        self.test_detections_per_img  = cfg.TEST.DETECTIONS_PER_IMAGE
-        self.in_features              = cfg.MODEL.ROI_HEADS.IN_FEATURES
-        self.num_classes              = cfg.MODEL.ROI_HEADS.NUM_CLASSES
-        self.proposal_append_gt       = cfg.MODEL.ROI_HEADS.PROPOSAL_APPEND_GT
-        self.feature_strides          = {k: v.stride for k, v in input_shape.items()}
-        self.feature_channels         = {k: v.channels for k, v in input_shape.items()}
-        self.cls_agnostic_bbox_reg    = cfg.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG
-        self.smooth_l1_beta           = cfg.MODEL.ROI_BOX_HEAD.SMOOTH_L1_BETA
+        self.test_score_thresh = cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST
+        self.test_nms_thresh = cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST
+        self.test_detections_per_img = cfg.TEST.DETECTIONS_PER_IMAGE
+        self.in_features = cfg.MODEL.ROI_HEADS.IN_FEATURES
+        self.num_classes = cfg.MODEL.ROI_HEADS.NUM_CLASSES
+        self.proposal_append_gt = cfg.MODEL.ROI_HEADS.PROPOSAL_APPEND_GT
+        self.feature_strides = {k: v.stride for k, v in input_shape.items()}
+        self.feature_channels = {k: v.channels for k, v in input_shape.items()}
+        self.cls_agnostic_bbox_reg = cfg.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG
+        self.smooth_l1_beta = cfg.MODEL.ROI_BOX_HEAD.SMOOTH_L1_BETA
         # fmt: on
 
         # Matcher to assign box proposals to gt boxes
@@ -104,9 +109,7 @@ class ROIHeads(torch.nn.Module):
         )
 
         # Box2BoxTransform for bounding box regression
-        self.box2box_transform = Box2BoxTransform(
-            weights=cfg.MODEL.ROI_BOX_HEAD.BBOX_REG_WEIGHTS
-        )
+        self.box2box_transform = Box2BoxTransform(weights=cfg.MODEL.ROI_BOX_HEAD.BBOX_REG_WEIGHTS)
 
     def _sample_proposals(self, matched_idxs, matched_labels, gt_classes):
         """
@@ -186,12 +189,8 @@ class ROIHeads(torch.nn.Module):
         num_bg_samples = []
         for proposals_per_image, targets_per_image in zip(proposals, targets):
             has_gt = len(targets_per_image) > 0
-            match_quality_matrix = pairwise_iou(
-                targets_per_image.gt_boxes, proposals_per_image.proposal_boxes
-            )
-            matched_idxs, matched_labels = self.proposal_matcher(
-                match_quality_matrix
-            )
+            match_quality_matrix = pairwise_iou(targets_per_image.gt_boxes, proposals_per_image.proposal_boxes)
+            matched_idxs, matched_labels = self.proposal_matcher(match_quality_matrix)
             sampled_idxs, gt_classes = self._sample_proposals(
                 matched_idxs, matched_labels, targets_per_image.gt_classes
             )
@@ -211,23 +210,13 @@ class ROIHeads(torch.nn.Module):
                     trg_name,
                     trg_value,
                 ) in targets_per_image.get_fields().items():
-                    if trg_name.startswith(
-                        "gt_"
-                    ) and not proposals_per_image.has(trg_name):
-                        proposals_per_image.set(
-                            trg_name, trg_value[sampled_targets]
-                        )
+                    if trg_name.startswith("gt_") and not proposals_per_image.has(trg_name):
+                        proposals_per_image.set(trg_name, trg_value[sampled_targets])
             else:
-                gt_boxes = Boxes(
-                    targets_per_image.gt_boxes.tensor.new_zeros(
-                        (len(sampled_idxs), 4)
-                    )
-                )
+                gt_boxes = Boxes(targets_per_image.gt_boxes.tensor.new_zeros((len(sampled_idxs), 4)))
                 proposals_per_image.gt_boxes = gt_boxes
 
-            num_bg_samples.append(
-                (gt_classes == self.num_classes).sum().item()
-            )
+            num_bg_samples.append((gt_classes == self.num_classes).sum().item())
             num_fg_samples.append(gt_classes.numel() - num_bg_samples[-1])
             proposals_with_gt.append(proposals_per_image)
 
@@ -279,10 +268,10 @@ class Res5ROIHeads(ROIHeads):
 
         # fmt: off
         pooler_resolution = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
-        pooler_type       = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
-        pooler_scales     = (1.0 / self.feature_strides[self.in_features[0]], )
-        sampling_ratio    = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
-        self.mask_on      = cfg.MODEL.MASK_ON
+        pooler_type = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
+        pooler_scales = (1.0 / self.feature_strides[self.in_features[0]], )
+        sampling_ratio = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+        self.mask_on = cfg.MODEL.MASK_ON
         # fmt: on
         assert not cfg.MODEL.KEYPOINT_ON
 
@@ -308,12 +297,12 @@ class Res5ROIHeads(ROIHeads):
     def _build_res5_block(self, cfg):
         # fmt: off
         stage_channel_factor = 2 ** 3  # res5 is 8x res2
-        num_groups           = cfg.MODEL.RESNETS.NUM_GROUPS
-        width_per_group      = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
-        bottleneck_channels  = num_groups * width_per_group * stage_channel_factor
-        out_channels         = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS * stage_channel_factor
-        stride_in_1x1        = cfg.MODEL.RESNETS.STRIDE_IN_1X1
-        norm                 = cfg.MODEL.RESNETS.NORM
+        num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
+        width_per_group = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
+        bottleneck_channels = num_groups * width_per_group * stage_channel_factor
+        out_channels = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS * stage_channel_factor
+        stride_in_1x1 = cfg.MODEL.RESNETS.STRIDE_IN_1X1
+        norm = cfg.MODEL.RESNETS.NORM
         assert not cfg.MODEL.RESNETS.DEFORM_ON_PER_STAGE[-1], \
             "Deformable conv is not yet supported in res5 head."
         # fmt: on
@@ -346,13 +335,9 @@ class Res5ROIHeads(ROIHeads):
         del targets
 
         proposal_boxes = [x.proposal_boxes for x in proposals]
-        box_features = self._shared_roi_transform(
-            [features[f] for f in self.in_features], proposal_boxes
-        )
+        box_features = self._shared_roi_transform([features[f] for f in self.in_features], proposal_boxes)
         feature_pooled = box_features.mean(dim=[2, 3])  # pooled to 1x1
-        pred_class_logits, pred_proposal_deltas = self.box_predictor(
-            feature_pooled
-        )
+        pred_class_logits, pred_proposal_deltas = self.box_predictor(feature_pooled)
 
         del feature_pooled
 
@@ -391,7 +376,7 @@ class StandardROIHeads(ROIHeads):
 
     def __init__(self, cfg, input_shape):
         super(StandardROIHeads, self).__init__(cfg, input_shape)
-        self.mask_on      = cfg.MODEL.MASK_ON
+        self.mask_on = cfg.MODEL.MASK_ON
         self.box_iou_on = cfg.MODEL.BOX_IOU_ON
         self._init_box_head(cfg)
         if self.mask_on:
@@ -400,10 +385,10 @@ class StandardROIHeads(ROIHeads):
     def _init_box_head(self, cfg):
         # fmt: off
         pooler_resolution = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
-        pooler_scales     = tuple(1.0 / self.feature_strides[k] for k in self.in_features)
-        sampling_ratio    = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
-        pooler_type       = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
-        self.cfg          = cfg
+        pooler_scales = tuple(1.0 / self.feature_strides[k] for k in self.in_features)
+        sampling_ratio = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+        pooler_type = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
+        self.cfg = cfg
         # fmt: on
 
         # If StandardROIHeads is applied on multiple feature maps (as in FPN),
@@ -428,7 +413,7 @@ class StandardROIHeads(ROIHeads):
                 channels=in_channels,
                 height=pooler_resolution,
                 width=pooler_resolution,
-            )
+            ),
         )
         output_layer = cfg.MODEL.ROI_HEADS.OUTPUT_LAYER
         self.box_predictor = ROI_HEADS_OUTPUT_REGISTRY.get(output_layer)(
@@ -441,7 +426,7 @@ class StandardROIHeads(ROIHeads):
         # self.use_box_uncertainty = cfg.MODEL.ROI_HEADS.OUTPUT_LAYER in \
         #     ['BoxUncertaintyFastRCNNOutputLayers', 'BoxUncertaintyBayesianOutputLayers']
 
-        self.use_box_uncertainty = 'BoxUncertainty' in cfg.MODEL.ROI_HEADS.OUTPUT_LAYER
+        self.use_box_uncertainty = "BoxUncertainty" in cfg.MODEL.ROI_HEADS.OUTPUT_LAYER
 
         if self.box_iou_on:
             self.box_iou_thres = cfg.MODEL.ROI_HEADS.BOX_IOU_THRES
@@ -452,10 +437,9 @@ class StandardROIHeads(ROIHeads):
                     channels=in_channels_2,
                     height=pooler_resolution,
                     width=pooler_resolution,
-                )
+                ),
             )
-            self.box_iou_predictor = ROI_HEADS_OUTPUT_REGISTRY.get(
-            cfg.MODEL.ROI_HEADS.OUTPUT_BOX_IOU_LAYER)(
+            self.box_iou_predictor = ROI_HEADS_OUTPUT_REGISTRY.get(cfg.MODEL.ROI_HEADS.OUTPUT_BOX_IOU_LAYER)(
                 cfg,
                 self.box_head.output_size,
                 0,
@@ -466,16 +450,16 @@ class StandardROIHeads(ROIHeads):
         if not cfg.MODEL.MASK_ON:
             return {}
         # fmt: off
-        in_features       = cfg.MODEL.ROI_HEADS.IN_FEATURES
+        in_features = cfg.MODEL.ROI_HEADS.IN_FEATURES
         pooler_resolution = cfg.MODEL.ROI_MASK_HEAD.POOLER_RESOLUTION
-        pooler_scales     = tuple(1.0 / self.feature_strides[k] for k in self.in_features)
-        sampling_ratio    = cfg.MODEL.ROI_MASK_HEAD.POOLER_SAMPLING_RATIO
-        pooler_type       = cfg.MODEL.ROI_MASK_HEAD.POOLER_TYPE
+        pooler_scales = tuple(1.0 / self.feature_strides[k] for k in self.in_features)
+        sampling_ratio = cfg.MODEL.ROI_MASK_HEAD.POOLER_SAMPLING_RATIO
+        pooler_type = cfg.MODEL.ROI_MASK_HEAD.POOLER_TYPE
         # fmt: on
 
         in_channels = [self.feature_channels[f] for f in self.in_features]
 
-        ret = {"mask_in_features": in_features}
+        # ret = {"mask_in_features": in_features}
         self.mask_in_features = in_features
 
         self.mask_pooler = ROIPooler(
@@ -548,35 +532,26 @@ class StandardROIHeads(ROIHeads):
             In inference, a list of `Instances`, the predicted instances.
         """
 
-        box_features = self.box_pooler(
-            features, [x.proposal_boxes for x in proposals]
-        )
+        box_features = self.box_pooler(features, [x.proposal_boxes for x in proposals])
 
-        pred_class_logits, pred_proposal_deltas = self.box_predictor(
-            self.box_head(box_features)
-        )
+        pred_class_logits, pred_proposal_deltas = self.box_predictor(self.box_head(box_features))
         # del box_features
 
         outputs = FastRCNNOutputs(
-            self.box2box_transform,
-            pred_class_logits,
-            pred_proposal_deltas,
-            proposals,
-            self.smooth_l1_beta,
-            self.cfg
+            self.box2box_transform, pred_class_logits, pred_proposal_deltas, proposals, self.smooth_l1_beta, self.cfg
         )
 
         outputs.box_predictor = self.box_predictor
 
         if self.training:
-            results =  outputs.losses()
+            results = outputs.losses()
         else:
             pred_instances, _ = outputs.inference(
                 self.test_score_thresh,
                 self.test_nms_thresh,
                 self.test_detections_per_img,
                 # use_nms=True,
-                use_nms=not self.box_iou_on, # box_iou before before NMS 
+                use_nms=not self.box_iou_on,  # box_iou before before NMS
             )
             results = pred_instances
 
@@ -587,7 +562,9 @@ class StandardROIHeads(ROIHeads):
                 proposals = Boxes(torch.cat([x.tensor for x in boxes]))
 
                 if self.use_box_uncertainty:
-                    fg_uncertainty = outputs.fg_proposal_uncertainty[..., None, None].expand(-1, -1, *box_features.shape[-2:])
+                    fg_uncertainty = outputs.fg_proposal_uncertainty[..., None, None].expand(
+                        -1, -1, *box_features.shape[-2:]
+                    )
                     box_features = torch.cat([box_features, fg_uncertainty], 1)
 
                 gt_boxes = outputs.gt_boxes_filter
@@ -600,9 +577,7 @@ class StandardROIHeads(ROIHeads):
                 gt_boxes = gt_boxes[keep]
                 box_features = box_features[keep]
 
-                pred_class_logits, pred_proposal_deltas = self.box_iou_predictor(
-                    self.box_iou_head(box_features)
-                )
+                pred_class_logits, pred_proposal_deltas = self.box_iou_predictor(self.box_iou_head(box_features))
 
                 outputs = FastRCNNOutputs(
                     self.box2box_transform,
@@ -618,20 +593,17 @@ class StandardROIHeads(ROIHeads):
 
                 results.update(outputs.losses())
 
-            else: # testing for box_iou_on
+            else:  # testing for box_iou_on
 
-                box_features = self.box_pooler(
-                    features, [x.pred_boxes for x in pred_instances]
-                )
+                box_features = self.box_pooler(features, [x.pred_boxes for x in pred_instances])
 
                 if self.use_box_uncertainty:
-                    fg_uncertainty = torch.cat([x.pred_box_uncertainty for x in pred_instances])\
-                                        [..., None, None].expand(-1, -1, *box_features.shape[-2:])
+                    fg_uncertainty = torch.cat([x.pred_box_uncertainty for x in pred_instances])[
+                        ..., None, None
+                    ].expand(-1, -1, *box_features.shape[-2:])
                     box_features = torch.cat([box_features, fg_uncertainty], 1)
 
-                pred_class_logits, pred_proposal_deltas = self.box_iou_predictor(
-                    self.box_iou_head(box_features)
-                )
+                pred_class_logits, pred_proposal_deltas = self.box_iou_predictor(self.box_iou_head(box_features))
 
                 outputs = FastRCNNOutputs(
                     self.box2box_transform,
@@ -647,13 +619,12 @@ class StandardROIHeads(ROIHeads):
                     self.test_score_thresh,
                     self.test_nms_thresh,
                     self.test_detections_per_img,
-                    use_nms=True # box_iou before before NMS 
+                    use_nms=True,  # box_iou before before NMS
                 )
 
         return results
 
-    def _forward_mask(
-        self, features, instances):
+    def _forward_mask(self, features, instances):
         """
         Forward logic of the mask prediction branch.
 

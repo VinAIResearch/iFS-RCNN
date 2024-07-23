@@ -4,24 +4,23 @@ import io
 import itertools
 import json
 import logging
-import numpy as np
 import os
-import torch
 from collections import OrderedDict
-from fvcore.common.file_io import PathManager
-from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
-import pycocotools.mask as mask_util
-from tabulate import tabulate
+from copy import deepcopy
 
 import detectron2.utils.comm as comm
+import numpy as np
+import pycocotools.mask as mask_util
+import torch
 from detectron2.data import MetadataCatalog
 from detectron2.data.datasets.coco import convert_to_coco_json
 from detectron2.structures import BoxMode
 from detectron2.utils.logger import create_small_table
-
 from fsdet.evaluation.evaluator import DatasetEvaluator
-from copy import deepcopy
+from fvcore.common.file_io import PathManager
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
+from tabulate import tabulate
 
 
 class COCOEvaluator(DatasetEvaluator):
@@ -53,21 +52,74 @@ class COCOEvaluator(DatasetEvaluator):
 
         self._metadata = MetadataCatalog.get(dataset_name)
         if not hasattr(self._metadata, "json_file"):
-            self._logger.warning(
-                f"json_file was not found in MetaDataCatalog for '{dataset_name}'")
+            self._logger.warning(f"json_file was not found in MetaDataCatalog for '{dataset_name}'")
 
             cache_path = convert_to_coco_json(dataset_name, output_dir)
             self._metadata.json_file = cache_path
-        self._is_splits = "all" in dataset_name or "base" in dataset_name \
-            or "novel" in dataset_name
+        self._is_splits = "all" in dataset_name or "base" in dataset_name or "novel" in dataset_name
         self._base_classes = [
-            8, 10, 11, 13, 14, 15, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35,
-            36, 37, 38, 39, 40, 41, 42, 43, 46, 47, 48, 49, 50, 51, 52, 53, 54,
-            55, 56, 57, 58, 59, 60, 61, 65, 70, 73, 74, 75, 76, 77, 78, 79, 80,
-            81, 82, 84, 85, 86, 87, 88, 89, 90,
+            8,
+            10,
+            11,
+            13,
+            14,
+            15,
+            22,
+            23,
+            24,
+            25,
+            27,
+            28,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            65,
+            70,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
         ]
-        self._novel_classes = [1, 2, 3, 4, 5, 6, 7, 9, 16, 17, 18, 19, 20, 21,
-                               44, 62, 63, 64, 67, 72]
+        self._novel_classes = [1, 2, 3, 4, 5, 6, 7, 9, 16, 17, 18, 19, 20, 21, 44, 62, 63, 64, 67, 72]
 
         json_file = PathManager.get_local_path(self._metadata.json_file)
         with contextlib.redirect_stdout(io.StringIO()):
@@ -96,8 +148,7 @@ class COCOEvaluator(DatasetEvaluator):
             # TODO this is ugly
             if "instances" in output:
                 instances = output["instances"].to(self._cpu_device)
-                prediction["instances"] = instances_to_coco_json(
-                    instances, input["image_id"])
+                prediction["instances"] = instances_to_coco_json(instances, input["image_id"])
             self._predictions.append(prediction)
 
     def evaluate(self):
@@ -110,14 +161,12 @@ class COCOEvaluator(DatasetEvaluator):
                 return {}
 
         if len(self._predictions) == 0:
-            self._logger.warning(
-                "[COCOEvaluator] Did not receive valid predictions.")
+            self._logger.warning("[COCOEvaluator] Did not receive valid predictions.")
             return {}
 
         if self._output_dir:
             PathManager.mkdirs(self._output_dir)
-            file_path = os.path.join(
-                self._output_dir, "instances_predictions.pth")
+            file_path = os.path.join(self._output_dir, "instances_predictions.pth")
             with PathManager.open(file_path, "wb") as f:
                 torch.save(self._predictions, f)
 
@@ -134,14 +183,11 @@ class COCOEvaluator(DatasetEvaluator):
         Fill self._results with the metrics of the instance detection task.
         """
         self._logger.info("Preparing results for COCO format ...")
-        self._coco_results = list(
-            itertools.chain(*[x["instances"] for x in self._predictions]))
+        self._coco_results = list(itertools.chain(*[x["instances"] for x in self._predictions]))
 
         # unmap the category ids for COCO
         if hasattr(self._metadata, "thing_dataset_id_to_contiguous_id"):
-            reverse_id_mapping = {
-                v: k for k, v in self._metadata.thing_dataset_id_to_contiguous_id.items()
-            }
+            reverse_id_mapping = {v: k for k, v in self._metadata.thing_dataset_id_to_contiguous_id.items()}
             for result in self._coco_results:
                 result["category_id"] = reverse_id_mapping[result["category_id"]]
 
@@ -158,9 +204,9 @@ class COCOEvaluator(DatasetEvaluator):
 
         self._logger.info("Evaluating predictions ...")
 
-        iou_types = ['bbox']
-        if 'segmentation' in self._coco_results[0]:
-            iou_types.append('segm')
+        iou_types = ["bbox"]
+        if "segmentation" in self._coco_results[0]:
+            iou_types.append("segm")
         # iou_types = ['segm']
 
         if self._is_splits:
@@ -168,31 +214,36 @@ class COCOEvaluator(DatasetEvaluator):
                 self._results[iou_type] = {}
 
                 for split, classes, names in [
-                        ("all", None, self._metadata.get("thing_classes")),
-                        ("base", self._base_classes, self._metadata.get("base_classes")),
-                        ("novel", self._novel_classes, self._metadata.get("novel_classes"))]:
-                    if "all" not in self._dataset_name and \
-                            split not in self._dataset_name:
+                    ("all", None, self._metadata.get("thing_classes")),
+                    ("base", self._base_classes, self._metadata.get("base_classes")),
+                    ("novel", self._novel_classes, self._metadata.get("novel_classes")),
+                ]:
+                    if "all" not in self._dataset_name and split not in self._dataset_name:
                         continue
 
-                    if iou_type == 'segm':
+                    if iou_type == "segm":
                         results = []
                         for r in self._coco_results:
                             new_r = deepcopy(r)
-                            del new_r['bbox']
+                            del new_r["bbox"]
                             results.append(new_r)
                     else:
                         results = self._coco_results
-                    
+
                     coco_eval = (
                         _evaluate_predictions_on_coco(
-                            self._coco_api, results, iou_type, classes,
+                            self._coco_api,
+                            results,
+                            iou_type,
+                            classes,
                         )
                         if len(self._coco_results) > 0
                         else None  # cocoapi does not handle empty results very well
                     )
                     res_ = self._derive_coco_results(
-                        coco_eval, iou_type, class_names=names,
+                        coco_eval,
+                        iou_type,
+                        class_names=names,
                     )
 
                     res = {}
@@ -201,9 +252,9 @@ class COCOEvaluator(DatasetEvaluator):
                             if split == "all":
                                 res[metric] = res_[metric]
                             elif split == "base":
-                                res["b"+metric] = res_[metric]
+                                res["b" + metric] = res_[metric]
                             elif split == "novel":
-                                res["n"+metric] = res_[metric]
+                                res["n" + metric] = res_[metric]
                     self._results[iou_type].update(res)
 
                 # add "AP" if not already in
@@ -214,26 +265,25 @@ class COCOEvaluator(DatasetEvaluator):
                         self._results[iou_type]["AP"] = self._results[iou_type]["bAP"]
         else:
             for iou_type in iou_types:
-                if iou_type == 'segm':
+                if iou_type == "segm":
                     results = []
                     for r in self._coco_results:
                         new_r = deepcopy(r)
-                        del new_r['bbox']
+                        del new_r["bbox"]
                         results.append(new_r)
                 else:
                     results = self._coco_results
 
                 coco_eval = (
                     _evaluate_predictions_on_coco(
-                        self._coco_api, results, iou_type,
+                        self._coco_api,
+                        results,
+                        iou_type,
                     )
                     if len(self._coco_results) > 0
                     else None  # cocoapi does not handle empty results very well
                 )
-                res = self._derive_coco_results(
-                    coco_eval, iou_type,
-                    class_names=self._metadata.get("thing_classes")
-                )
+                res = self._derive_coco_results(coco_eval, iou_type, class_names=self._metadata.get("thing_classes"))
                 self._results[iou_type] = res
 
     def _derive_coco_results(self, coco_eval, iou_type, class_names=None):
@@ -257,14 +307,8 @@ class COCOEvaluator(DatasetEvaluator):
             return {metric: -1 for metric in metrics}
 
         # the standard metrics
-        results = {
-            metric: float(coco_eval.stats[idx] * 100) \
-                for idx, metric in enumerate(metrics)
-        }
-        self._logger.info(
-            "Evaluation results for {}: \n".format(iou_type) + \
-                create_small_table(results)
-        )
+        results = {metric: float(coco_eval.stats[idx] * 100) for idx, metric in enumerate(metrics)}
+        self._logger.info("Evaluation results for {}: \n".format(iou_type) + create_small_table(results))
 
         if class_names is None or len(class_names) <= 1:
             return results
@@ -286,8 +330,7 @@ class COCOEvaluator(DatasetEvaluator):
         # tabulate it
         N_COLS = min(6, len(results_per_category) * 2)
         results_flatten = list(itertools.chain(*results_per_category))
-        results_2d = itertools.zip_longest(
-            *[results_flatten[i::N_COLS] for i in range(N_COLS)])
+        results_2d = itertools.zip_longest(*[results_flatten[i::N_COLS] for i in range(N_COLS)])
         table = tabulate(
             results_2d,
             tablefmt="pipe",
@@ -324,16 +367,15 @@ def instances_to_coco_json(instances, img_id):
 
     use_mask = False
 
-    if hasattr(instances, 'pred_masks'):
+    if hasattr(instances, "pred_masks"):
         masks = instances.pred_masks.numpy()
         use_mask = True
 
     results = []
     for k in range(num_instance):
         if use_mask:
-            segm = mask_util.encode(
-                    np.array(masks[k, ..., None], order='F'))[0]
-            segm['counts'] = segm['counts'].decode('utf-8')
+            segm = mask_util.encode(np.array(masks[k, ..., None], order="F"))[0]
+            segm["counts"] = segm["counts"].decode("utf-8")
             result = {
                 "image_id": img_id,
                 "category_id": classes[k],

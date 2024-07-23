@@ -1,18 +1,13 @@
-from torch import nn
-import torch.nn.functional as F
 import fvcore.nn.weight_init as weight_init
-
-from detectron2.modeling.backbone import FPN, build_resnet_backbone
+import torch.nn.functional as F
 from detectron2.layers import ShapeSpec
+from detectron2.modeling.backbone import FPN, build_mnv2_backbone, build_resnet_backbone
 from detectron2.modeling.backbone.build import BACKBONE_REGISTRY
+from torch import nn
 
 
-__all__ = [
-    "FPN",
-    "LastLevelP6P7",
-    "LastLevelP6",
-    "build_fcos_resnet_fpn_backbone"
-]
+__all__ = ["FPN", "LastLevelP6P7", "LastLevelP6", "build_fcos_resnet_fpn_backbone"]
+
 
 class LastLevelP6P7(nn.Module):
     """

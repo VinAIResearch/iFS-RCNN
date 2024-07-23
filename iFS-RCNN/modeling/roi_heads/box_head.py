@@ -1,11 +1,11 @@
-import numpy as np
 import fvcore.nn.weight_init as weight_init
+import numpy as np
 import torch
+from detectron2.layers import Conv2d, ShapeSpec, get_norm
+from detectron2.utils.registry import Registry
 from torch import nn
 from torch.nn import functional as F
 
-from detectron2.layers import Conv2d, ShapeSpec, get_norm
-from detectron2.utils.registry import Registry
 
 ROI_BOX_HEAD_REGISTRY = Registry("ROI_BOX_HEAD")
 ROI_BOX_HEAD_REGISTRY.__doc__ = """
@@ -32,11 +32,11 @@ class FastRCNNConvFCHead(nn.Module):
         super().__init__()
 
         # fmt: off
-        num_conv   = cfg.MODEL.ROI_BOX_HEAD.NUM_CONV
-        conv_dim   = cfg.MODEL.ROI_BOX_HEAD.CONV_DIM
-        num_fc     = cfg.MODEL.ROI_BOX_HEAD.NUM_FC
-        fc_dim     = cfg.MODEL.ROI_BOX_HEAD.FC_DIM
-        norm       = cfg.MODEL.ROI_BOX_HEAD.NORM
+        num_conv = cfg.MODEL.ROI_BOX_HEAD.NUM_CONV
+        conv_dim = cfg.MODEL.ROI_BOX_HEAD.CONV_DIM
+        num_fc = cfg.MODEL.ROI_BOX_HEAD.NUM_FC
+        fc_dim = cfg.MODEL.ROI_BOX_HEAD.FC_DIM
+        norm = cfg.MODEL.ROI_BOX_HEAD.NORM
         # fmt: on
         assert num_conv + num_fc > 0
 

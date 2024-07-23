@@ -31,20 +31,18 @@ class MaxPool2d(torch.nn.MaxPool2d):
             # So that the following operations will not panic
             # if they check for the shape of the tensor.
             # This computes the height and width of the output tensor
-            
+
             output_shape = [
                 (i + 2 * p - (di * (k - 1) + 1)) // s + 1
-                for i, p, di, k, s in zip(
-                    x.shape[-2:], self.padding, self.dilation, self.kernel_size, self.stride
-                )
+                for i, p, di, k, s in zip(x.shape[-2:], self.padding, self.dilation, self.kernel_size, self.stride)
             ]
             output_shape = [x.shape[0], x.shape[1]] + output_shape
             empty = _NewEmptyTensorOp.apply(x, output_shape)
-            
+
             return empty
 
         x = super().forward(x)
-        
+
         return x
 
     def _make_iteratable(self):
@@ -73,7 +71,7 @@ class Linear(torch.nn.Linear):
     def forward(self, x):
         if x.numel() == 0:
             output_shape = [x.shape[0], self.weight.shape[0]]
-            
+
             empty = _NewEmptyTensorOp.apply(x, output_shape)
             if self.training:
                 # This is to make DDP happy.

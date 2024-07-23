@@ -1,17 +1,16 @@
-import numpy as np
-from fvcore.common.file_io import PathManager
-
 import os
 import xml.etree.ElementTree as ET
+
+import numpy as np
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
+from fvcore.common.file_io import PathManager
+
 
 __all__ = ["register_meta_pascal_voc"]
 
 
-def load_filtered_voc_instances(
-    name: str, dirname: str, split: str, classnames: str
-):
+def load_filtered_voc_instances(name: str, dirname: str, split: str, classnames: str):
     """
     Load Pascal VOC detection annotations to Detectron2 format.
     Args:
@@ -29,22 +28,14 @@ def load_filtered_voc_instances(
         else:
             shot = name.split("_")[-1].split("shot")[0]
         for cls in classnames:
-            with PathManager.open(
-                os.path.join(
-                    split_dir, "box_{}shot_{}_train.txt".format(shot, cls)
-                )
-            ) as f:
+            with PathManager.open(os.path.join(split_dir, "box_{}shot_{}_train.txt".format(shot, cls))) as f:
                 fileids_ = np.loadtxt(f, dtype=np.str).tolist()
                 if isinstance(fileids_, str):
                     fileids_ = [fileids_]
-                fileids_ = [
-                    fid.split("/")[-1].split(".jpg")[0] for fid in fileids_
-                ]
+                fileids_ = [fid.split("/")[-1].split(".jpg")[0] for fid in fileids_]
                 fileids[cls] = fileids_
     else:
-        with PathManager.open(
-            os.path.join(dirname, "ImageSets", "Main", split + ".txt")
-        ) as f:
+        with PathManager.open(os.path.join(dirname, "ImageSets", "Main", split + ".txt")) as f:
             fileids = np.loadtxt(f, dtype=np.str)
 
     dicts = []
@@ -54,12 +45,8 @@ def load_filtered_voc_instances(
             for fileid in fileids_:
                 year = "2012" if "_" in fileid else "2007"
                 dirname = os.path.join("datasets", "VOC{}".format(year))
-                anno_file = os.path.join(
-                    dirname, "Annotations", fileid + ".xml"
-                )
-                jpeg_file = os.path.join(
-                    dirname, "JPEGImages", fileid + ".jpg"
-                )
+                anno_file = os.path.join(dirname, "Annotations", fileid + ".xml")
+                jpeg_file = os.path.join(dirname, "JPEGImages", fileid + ".jpg")
 
                 tree = ET.parse(anno_file)
 
@@ -74,10 +61,7 @@ def load_filtered_voc_instances(
                     if cls != cls_:
                         continue
                     bbox = obj.find("bndbox")
-                    bbox = [
-                        float(bbox.find(x).text)
-                        for x in ["xmin", "ymin", "xmax", "ymax"]
-                    ]
+                    bbox = [float(bbox.find(x).text) for x in ["xmin", "ymin", "xmax", "ymax"]]
                     bbox[0] -= 1.0
                     bbox[1] -= 1.0
 
@@ -113,10 +97,7 @@ def load_filtered_voc_instances(
                 if not (cls in classnames):
                     continue
                 bbox = obj.find("bndbox")
-                bbox = [
-                    float(bbox.find(x).text)
-                    for x in ["xmin", "ymin", "xmax", "ymax"]
-                ]
+                bbox = [float(bbox.find(x).text) for x in ["xmin", "ymin", "xmax", "ymax"]]
                 bbox[0] -= 1.0
                 bbox[1] -= 1.0
 
@@ -132,9 +113,7 @@ def load_filtered_voc_instances(
     return dicts
 
 
-def register_meta_pascal_voc(
-    name, metadata, dirname, split, year, keepclasses, sid
-):
+def register_meta_pascal_voc(name, metadata, dirname, split, year, keepclasses, sid):
     if keepclasses.startswith("base_novel"):
         thing_classes = metadata["thing_classes"][sid]
     elif keepclasses.startswith("base"):
@@ -144,9 +123,7 @@ def register_meta_pascal_voc(
 
     DatasetCatalog.register(
         name,
-        lambda: load_filtered_voc_instances(
-            name, dirname, split, thing_classes
-        ),
+        lambda: load_filtered_voc_instances(name, dirname, split, thing_classes),
     )
 
     MetadataCatalog.get(name).set(

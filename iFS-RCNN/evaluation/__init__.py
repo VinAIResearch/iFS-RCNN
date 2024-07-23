@@ -4,4 +4,17 @@ from .lvis_evaluation import LVISEvaluator
 from .pascal_voc_evaluation import PascalVOCDetectionEvaluator
 from .testing import print_csv_format, verify_results
 
+
 __all__ = [k for k in globals().keys() if not k.startswith("_")]
+
+__all__ = (
+    COCOEvaluator,
+    DatasetEvaluator,
+    DatasetEvaluators,
+    inference_context,
+    inference_on_dataset,
+    LVISEvaluator,
+    PascalVOCDetectionEvaluator,
+    print_csv_format,
+    verify_results,
+)

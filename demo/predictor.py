@@ -1,10 +1,10 @@
-import cv2
-import torch
-
 import atexit
 import bisect
 import multiprocessing as mp
 from collections import deque
+
+import cv2
+import torch
 from detectron2.data import MetadataCatalog
 from detectron2.utils.video_visualizer import VideoVisualizer
 from detectron2.utils.visualizer import ColorMode, Visualizer
@@ -21,9 +21,7 @@ class VisualizationDemo(object):
                 from visualization.
                 Useful since the visualization logic can be slow.
         """
-        self.metadata = MetadataCatalog.get(
-            cfg.DATASETS.TEST[0] if len(cfg.DATASETS.TEST) else "__unused"
-        )
+        self.metadata = MetadataCatalog.get(cfg.DATASETS.TEST[0] if len(cfg.DATASETS.TEST) else "__unused")
         self.cpu_device = torch.device("cpu")
         self.instance_mode = instance_mode
 
@@ -47,14 +45,10 @@ class VisualizationDemo(object):
         predictions = self.predictor(image)
         # Convert image from OpenCV BGR format to Matplotlib RGB format.
         image = image[:, :, ::-1]
-        visualizer = Visualizer(
-            image, self.metadata, instance_mode=self.instance_mode
-        )
+        visualizer = Visualizer(image, self.metadata, instance_mode=self.instance_mode)
         if "instances" in predictions:
             instances = predictions["instances"].to(self.cpu_device)
-            vis_output = visualizer.draw_instance_predictions(
-                predictions=instances
-            )
+            vis_output = visualizer.draw_instance_predictions(predictions=instances)
 
         return predictions, vis_output
 
@@ -81,9 +75,7 @@ class VisualizationDemo(object):
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             if "instances" in predictions:
                 predictions = predictions["instances"].to(self.cpu_device)
-                vis_frame = video_visualizer.draw_instance_predictions(
-                    frame, predictions
-                )
+                vis_frame = video_visualizer.draw_instance_predictions(frame, predictions)
 
             # Converts Matplotlib RGB format to OpenCV BGR format
             vis_frame = cv2.cvtColor(vis_frame.get_image(), cv2.COLOR_RGB2BGR)
@@ -154,14 +146,8 @@ class AsyncPredictor:
         for gpuid in range(max(num_gpus, 1)):
             cfg = cfg.clone()
             cfg.defrost()
-            cfg.MODEL.DEVICE = (
-                "cuda:{}".format(gpuid) if num_gpus > 0 else "cpu"
-            )
-            self.procs.append(
-                AsyncPredictor._PredictWorker(
-                    cfg, self.task_queue, self.result_queue
-                )
-            )
+            cfg.MODEL.DEVICE = "cuda:{}".format(gpuid) if num_gpus > 0 else "cpu"
+            self.procs.append(AsyncPredictor._PredictWorker(cfg, self.task_queue, self.result_queue))
 
         self.put_idx = 0
         self.get_idx = 0

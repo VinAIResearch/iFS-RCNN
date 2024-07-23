@@ -1,11 +1,10 @@
-import torch
-
-from fsdet.modeling import build_model
-
 import os
+
 import pkg_resources
+import torch
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
+from fsdet.modeling import build_model
 
 
 class _ModelZooUrls(object):
@@ -17,7 +16,7 @@ class _ModelZooUrls(object):
 
     # format: {config_path.yaml} -> model_id/model_final.pth
     CONFIG_PATH_TO_URL_SUFFIX = {
-        ### PASCAL VOC Detection ###
+        # PASCAL VOC Detection ###
         # Base Model
         "PascalVOC-detection/split1/faster_rcnn_R_101_FPN_base1.yaml": "voc/split1/base_model/model_final.pth",
         "PascalVOC-detection/split2/faster_rcnn_R_101_FPN_base2.yaml": "voc/split2/base_model/model_final.pth",
@@ -70,7 +69,7 @@ class _ModelZooUrls(object):
         "PascalVOC-detection/split3/faster_rcnn_R_101_FPN_ft_fc_all3_3shot.yaml": "voc/split3/tfa_fc_3shot/model_final.pth",
         "PascalVOC-detection/split3/faster_rcnn_R_101_FPN_ft_fc_all3_5shot.yaml": "voc/split3/tfa_fc_5shot/model_final.pth",
         "PascalVOC-detection/split3/faster_rcnn_R_101_FPN_ft_fc_all3_10shot.yaml": "voc/split3/tfa_fc_10shot/model_final.pth",
-        ### COCO Detection ###
+        # COCO Detection ###
         # Base Model
         "COCO-detection/faster_rcnn_R_101_FPN_base.yaml": "coco/base_model/model_final.pth",
         # FRCN+ft-full
@@ -94,25 +93,25 @@ class _ModelZooUrls(object):
         "COCO-detection/faster_rcnn_R_101_FPN_ft_fc_all_5shot.yaml": "coco/tfa_fc_5shot/model_final.pth",
         "COCO-detection/faster_rcnn_R_101_FPN_ft_fc_all_10shot.yaml": "coco/tfa_fc_10shot/model_final.pth",
         "COCO-detection/faster_rcnn_R_101_FPN_ft_fc_all_30shot.yaml": "coco/tfa_fc_30shot/model_final.pth",
-        ### LVIS Detection ###
+        # LVIS Detection ###
         # Base Models
-        ## With repeat sampling
+        # With repeat sampling
         "LVIS-detection/faster_rcnn_R_50_FPN_base.yaml": "lvis/R_50_FPN_base_repeat_fc/model_final.pth",
         "LVIS-detection/faster_rcnn_R_50_FPN_base_cosine.yaml": "lvis/R_50_FPN_base_repeat_cos/model_final.pth",
         "LVIS-detection/faster_rcnn_R_101_FPN_base.yaml": "lvis/R_101_FPN_base_repeat_fc/model_final.pth",
         "LVIS-detection/faster_rcnn_R_101_FPN_base_cosine.yaml": "lvis/R_101_FPN_base_repeat_cos/model_final.pth",
-        ## No repeat sampling
+        # No repeat sampling
         "LVIS-detection/faster_rcnn_R_50_FPN_base_norepeat.yaml": "lvis/R_50_FPN_base_norepeat_fc/model_final.pth",
         "LVIS-detection/faster_rcnn_R_50_FPN_base_norepeat_cosine.yaml": "lvis/R_50_FPN_base_norepeat_cos/model_final.pth",
         "LVIS-detection/faster_rcnn_R_101_FPN_base_norepeat.yaml": "lvis/R_101_FPN_base_norepeat_fc/model_final.pth",
         "LVIS-detection/faster_rcnn_R_101_FPN_base_norepeat_cosine.yaml": "lvis/R_101_FPN_base_norepeat_cos/model_final.pth",
         # Fine-tuned Models
-        ## With repeat sampling
+        # With repeat sampling
         "LVIS-detection/faster_rcnn_R_50_FPN_combined_all.yaml": "lvis/R_50_FPN_repeat_fc/model_final.pth",
         "LVIS-detection/faster_rcnn_R_50_FPN_cosine_combined_all.yaml": "lvis/R_50_FPN_repeat_cos/model_final.pth",
         "LVIS-detection/faster_rcnn_R_101_FPN_combined_all.yaml": "lvis/R_101_FPN_repeat_fc/model_final.pth",
         "LVIS-detection/faster_rcnn_R_101_FPN_cosine_combined_all.yaml": "lvis/R_101_FPN_repeat_cos/model_final.pth",
-        ## No repeat sampling
+        # No repeat sampling
         "LVIS-detection/faster_rcnn_R_50_FPN_combined_all_norepeat.yaml": "lvis/R_50_FPN_norepeat_fc/model_final.pth",
         "LVIS-detection/faster_rcnn_R_50_FPN_cosine_combined_all_norepeat.yaml": "lvis/R_50_FPN_norepeat_cos/model_final.pth",
         "LVIS-detection/faster_rcnn_R_101_FPN_combined_all_norepeat.yaml": "lvis/R_101_FPN_norepeat_fc/model_final.pth",
@@ -144,13 +143,9 @@ def get_config_file(config_path):
     Returns:
         str: the real path to the config file.
     """
-    cfg_file = pkg_resources.resource_filename(
-        "fsdet.model_zoo", os.path.join("configs", config_path)
-    )
+    cfg_file = pkg_resources.resource_filename("fsdet.model_zoo", os.path.join("configs", config_path))
     if not os.path.exists(cfg_file):
-        raise RuntimeError(
-            "{} not available in Model Zoo!".format(config_path)
-        )
+        raise RuntimeError("{} not available in Model Zoo!".format(config_path))
     return cfg_file
 
 

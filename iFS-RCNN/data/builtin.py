@@ -7,23 +7,20 @@ We hard-code metadata for common datasets. This will enable:
 We hard-code some paths to the dataset that's assumed to
 exist in "./datasets/".
 
-Here we only register the few-shot datasets and complete COCO, PascalVOC and 
-LVIS have been handled by the builtin datasets in detectron2. 
+Here we only register the few-shot datasets and complete COCO, PascalVOC and
+LVIS have been handled by the builtin datasets in detectron2.
 """
 
 import os
-from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2.data.datasets.lvis import (
-    get_lvis_instances_meta,
-    register_lvis_instances,
-)
-from detectron2.data.datasets.pascal_voc import register_pascal_voc
-from detectron2.data.datasets.register_coco import register_coco_instances
+
+from detectron2.data import MetadataCatalog
+from detectron2.data.datasets.lvis import register_lvis_instances
 
 from .builtin_meta import _get_builtin_metadata
 from .meta_coco import register_meta_coco
 from .meta_lvis import register_meta_lvis
 from .meta_pascal_voc import register_meta_pascal_voc
+
 
 # ==== Predefined datasets and splits for COCO ==========
 
@@ -109,7 +106,7 @@ def register_all_coco(root="datasets"):
                 seed = "" if seed == 0 else "_seed{}".format(seed)
                 name = "coco_trainval_{}_{}shot{}".format(prefix, shot, seed)
                 # METASPLITS.append((name, "coco/trainval2014", "")) # ori
-                METASPLITS.append((name, "coco/trainval2014",  "cocosplit/datasplit/5k.json"))
+                METASPLITS.append((name, "coco/trainval2014", "cocosplit/datasplit/5k.json"))
 
     for name, imgdir, annofile in METASPLITS:
         register_meta_coco(
@@ -157,9 +154,7 @@ def register_all_lvis(root="datasets"):
             register_lvis_instances(
                 key,
                 _get_builtin_metadata(dataset_name),
-                os.path.join(root, json_file)
-                if "://" not in json_file
-                else json_file,
+                os.path.join(root, json_file) if "://" not in json_file else json_file,
                 os.path.join(root, image_root),
             )
 
@@ -183,11 +178,10 @@ def register_all_lvis(root="datasets"):
         register_meta_lvis(
             name,
             _get_builtin_metadata(dataset_name),
-            os.path.join(root, json_file)
-            if "://" not in json_file
-            else json_file,
+            os.path.join(root, json_file) if "://" not in json_file else json_file,
             os.path.join(root, image_root),
         )
+
 
 # ==== Predefined splits for PASCAL VOC ===========
 def register_all_pascal_voc(root="datasets"):
@@ -237,21 +231,11 @@ def register_all_pascal_voc(root="datasets"):
                 for year in [2007, 2012]:
                     for seed in range(100):
                         seed = "" if seed == 0 else "_seed{}".format(seed)
-                        name = "voc_{}_trainval_{}{}_{}shot{}".format(
-                            year, prefix, sid, shot, seed
-                        )
+                        name = "voc_{}_trainval_{}{}_{}shot{}".format(year, prefix, sid, shot, seed)
                         dirname = "VOC{}".format(year)
-                        img_file = "{}_{}shot_split_{}_trainval".format(
-                            prefix, shot, sid
-                        )
-                        keepclasses = (
-                            "base_novel_{}".format(sid)
-                            if prefix == "all"
-                            else "novel{}".format(sid)
-                        )
-                        METASPLITS.append(
-                            (name, dirname, img_file, keepclasses, sid)
-                        )
+                        img_file = "{}_{}shot_split_{}_trainval".format(prefix, shot, sid)
+                        keepclasses = "base_novel_{}".format(sid) if prefix == "all" else "novel{}".format(sid)
+                        METASPLITS.append((name, dirname, img_file, keepclasses, sid))
 
     for name, dirname, split, keepclasses, sid in METASPLITS:
         year = 2007 if "2007" in name else 2012

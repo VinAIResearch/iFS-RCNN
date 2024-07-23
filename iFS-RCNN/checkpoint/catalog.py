@@ -1,7 +1,8 @@
 """FS-Det Model Handler."""
-from fvcore.common.file_io import PathHandler, PathManager
 
-import logging
+# import logging
+
+from fvcore.common.file_io import PathHandler, PathManager
 
 
 class FsDetHandler(PathHandler):

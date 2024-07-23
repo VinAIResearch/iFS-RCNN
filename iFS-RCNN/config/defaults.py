@@ -1,6 +1,7 @@
 from detectron2.config import CfgNode as CN
 from detectron2.config.defaults import _C
 
+
 # adding additional default values built on top of the default values in detectron2
 
 _CC = _C
@@ -9,8 +10,8 @@ _CC = _C
 _CC.MODEL.BACKBONE.FREEZE = False
 _CC.MODEL.PROPOSAL_GENERATOR.FREEZE = False
 _CC.MODEL.ROI_HEADS.FREEZE_FEAT = False
-_CC.MODEL.ROI_HEADS.COMBINE_TYPE = 'softmax'
-_CC.MODEL.ROI_HEADS.LOSS_TYPE = 'CE'
+_CC.MODEL.ROI_HEADS.COMBINE_TYPE = "softmax"
+_CC.MODEL.ROI_HEADS.LOSS_TYPE = "CE"
 
 # choose from "FastRCNNOutputLayers" and "CosineSimOutputLayers"
 _CC.MODEL.ROI_HEADS.OUTPUT_LAYER = "FastRCNNOutputLayers"
@@ -45,7 +46,7 @@ _CC.MUTE_HEADER = True
 _CC.VISUALIZATION = CN()
 _CC.VISUALIZATION.SHOW = False
 _CC.VISUALIZATION.CONF_THRESH = 0.3
-_CC.VISUALIZATION.FOLDER = 'vis'
+_CC.VISUALIZATION.FOLDER = "vis"
 
 # ---------------------------------------------------------------------------- #
 # SOLOv2 Options
@@ -65,7 +66,7 @@ _CC.MODEL.SOLOV2.INSTANCE_CHANNELS = 512
 # Convolutions to use in the instance head.
 _CC.MODEL.SOLOV2.NUM_INSTANCE_CONVS = 4
 _CC.MODEL.SOLOV2.USE_DCN_IN_INSTANCE = False
-_CC.MODEL.SOLOV2.TYPE_DCN = 'DCN'
+_CC.MODEL.SOLOV2.TYPE_DCN = "DCN"
 _CC.MODEL.SOLOV2.NUM_GRIDS = [40, 36, 24, 16, 12]
 # Number of foreground classes.
 _CC.MODEL.SOLOV2.NUM_CLASSES = 80
@@ -101,7 +102,7 @@ _CC.MODEL.SOLOV2.LOSS.FOCAL_GAMMA = 2.0
 _CC.MODEL.SOLOV2.LOSS.FOCAL_WEIGHT = 1.0
 _CC.MODEL.SOLOV2.LOSS.DICE_WEIGHT = 3.0
 
-# New network option 
+# New network option
 _CC.MODEL.SOLOV2.USE_COSINE_SIM = ""
 _CC.MODEL.SOLOV2.USE_LABEL_REFINE = False
 _CC.MODEL.SOLOV2.USE_BAYESIAN = False
@@ -152,7 +153,7 @@ _CC.MODEL.FCOS.NUM_BOX_CONVS = 4
 _CC.MODEL.FCOS.NUM_SHARE_CONVS = 0
 _CC.MODEL.FCOS.CENTER_SAMPLE = True
 _CC.MODEL.FCOS.POS_RADIUS = 1.5
-_CC.MODEL.FCOS.LOC_LOSS_TYPE = 'giou'
+_CC.MODEL.FCOS.LOC_LOSS_TYPE = "giou"
 
 # ---------------------------------------------------------------------------- #
 # CenterMask

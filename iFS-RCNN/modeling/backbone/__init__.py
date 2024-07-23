@@ -1,1 +1,4 @@
-from .fpn import build_fcos_resnet_fpn_backbone, LastLevelP6P7, LastLevelP6
+from .fpn import LastLevelP6, LastLevelP6P7, build_fcos_resnet_fpn_backbone
+
+
+__all__ = (LastLevelP6, LastLevelP6P7, build_fcos_resnet_fpn_backbone)

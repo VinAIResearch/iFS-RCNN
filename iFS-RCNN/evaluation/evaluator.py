@@ -1,17 +1,17 @@
 import datetime
 import logging
+import os
 import time
 from collections import OrderedDict
 from contextlib import contextmanager
-import torch
 
+import cv2
+import matplotlib.pyplot as plt
+import torch
+from detectron2.data import MetadataCatalog  # , DatasetCatalog
+from detectron2.structures import Instances  # , Boxes, ImageList
 from detectron2.utils.comm import is_main_process
 from detectron2.utils.visualizer import Visualizer
-from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2.structures import Boxes, ImageList, Instances
-import cv2
-import os
-import matplotlib.pyplot as plt
 
 
 class DatasetEvaluator:
@@ -78,9 +78,7 @@ class DatasetEvaluators(DatasetEvaluator):
             result = evaluator.evaluate()
             if is_main_process():
                 for k, v in result.items():
-                    assert (
-                        k not in results
-                    ), "Different evaluators produce results with the same key {}".format(k)
+                    assert k not in results, "Different evaluators produce results with the same key {}".format(k)
                     results[k] = v
         return results
 
@@ -117,7 +115,7 @@ def inference_on_dataset(model, data_loader, evaluator):
     visualize = cfg.VISUALIZATION.SHOW
     if visualize:
         conf_thres = cfg.VISUALIZATION.CONF_THRESH
-        output_dir = f'{cfg.OUTPUT_DIR}/{cfg.VISUALIZATION.FOLDER}'
+        output_dir = f"{cfg.OUTPUT_DIR}/{cfg.VISUALIZATION.FOLDER}"
         os.makedirs(output_dir, exist_ok=True)
 
     # end newly added
@@ -143,10 +141,10 @@ def inference_on_dataset(model, data_loader, evaluator):
             if visualize:
                 print(idx)
                 for i in range(len(inputs)):
-                    im = cv2.imread(inputs[i]['file_name'])
+                    im = cv2.imread(inputs[i]["file_name"])
                     vis = Visualizer(im[:, :, ::-1], MetadataCatalog.get(cfg.DATASETS.TRAIN[0]), scale=1.2)
-                    
-                    output = outputs[i]['instances']
+
+                    output = outputs[i]["instances"]
 
                     keep_indices = output.scores > conf_thres
 
@@ -156,42 +154,38 @@ def inference_on_dataset(model, data_loader, evaluator):
                     result.pred_masks = output.pred_masks[keep_indices]
                     result.pred_boxes = output.pred_boxes[keep_indices]
 
-                    if output.has('pred_box_uncertainty'):
+                    if output.has("pred_box_uncertainty"):
                         result.pred_box_uncertainty = output.pred_box_uncertainty[keep_indices]
 
                     out = vis.draw_instance_predictions(result.to("cpu")).get_image()[:, :, ::-1]
 
-                    file_name = inputs[i]['file_name'].split('/')[-1]
-                    cv2.imwrite(f'{output_dir}/{file_name}', out)
+                    file_name = inputs[i]["file_name"].split("/")[-1]
+                    cv2.imwrite(f"{output_dir}/{file_name}", out)
 
-                    if output.has('pred_uncertainty'):
+                    if output.has("pred_uncertainty"):
                         uncertainties = output.pred_uncertainty[keep_indices]
                         masks = output.pred_masks[keep_indices]
 
                         plt.imshow(im[:, :, ::-1])
-                        plt.savefig(f'{output_dir}/{file_name}_img.jpg')
+                        plt.savefig(f"{output_dir}/{file_name}_img.jpg")
 
                         for k in range(len(masks)):
                             uncertainty, mask = uncertainties[k].data.cpu(), masks[k].data.cpu()
 
                             plt.matshow(mask)
-                            plt.savefig(f'{output_dir}/{file_name}_{k}_mean.jpg')
+                            plt.savefig(f"{output_dir}/{file_name}_{k}_mean.jpg")
 
                             plt.matshow(uncertainty)
-                            plt.savefig(f'{output_dir}/{file_name}_{k}_std.jpg')
-                            
-                        plt.close('all')
+                            plt.savefig(f"{output_dir}/{file_name}_{k}_std.jpg")
+
+                        plt.close("all")
 
             if (idx + 1) % logging_interval == 0:
                 duration = time.time() - start_time
                 seconds_per_img = duration / (idx + 1 - num_warmup)
-                eta = datetime.timedelta(
-                    seconds=int(seconds_per_img * (total - num_warmup) - duration)
-                )
+                eta = datetime.timedelta(seconds=int(seconds_per_img * (total - num_warmup) - duration))
                 logger.info(
-                    "Inference done {}/{}. {:.4f} s / img. ETA={}".format(
-                        idx + 1, total, seconds_per_img, str(eta)
-                    )
+                    "Inference done {}/{}. {:.4f} s / img. ETA={}".format(idx + 1, total, seconds_per_img, str(eta))
                 )
 
     # Measure the time only for this worker (before the synchronization barrier)

@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import numpy as np
 import os
 import tempfile
 import xml.etree.ElementTree as ET
 from collections import OrderedDict, defaultdict
 from functools import lru_cache
-import torch
 
+import numpy as np
+import torch
 from detectron2.data import MetadataCatalog
 from detectron2.utils import comm
 from detectron2.utils.logger import create_small_table
-
 from fsdet.evaluation.evaluator import DatasetEvaluator
 
 
@@ -60,9 +59,7 @@ class PascalVOCDetectionEvaluator(DatasetEvaluator):
                 # The inverse of data loading logic in `datasets/pascal_voc.py`
                 xmin += 1
                 ymin += 1
-                self._predictions[cls].append(
-                    f"{image_id} {score:.3f} {xmin:.1f} {ymin:.1f} {xmax:.1f} {ymax:.1f}"
-                )
+                self._predictions[cls].append(f"{image_id} {score:.3f} {xmin:.1f} {ymin:.1f} {xmax:.1f} {ymax:.1f}")
 
     def evaluate(self):
         """
@@ -124,23 +121,19 @@ class PascalVOCDetectionEvaluator(DatasetEvaluator):
         # adding evaluation of the base and novel classes
         if exist_base:
             mAP_base = {iou: np.mean(x) for iou, x in aps_base.items()}
-            ret["bbox"].update(
-                {"bAP": np.mean(list(mAP_base.values())), "bAP50": mAP_base[50],
-                 "bAP75": mAP_base[75]}
-            )
+            ret["bbox"].update({"bAP": np.mean(list(mAP_base.values())), "bAP50": mAP_base[50], "bAP75": mAP_base[75]})
 
         if exist_novel:
             mAP_novel = {iou: np.mean(x) for iou, x in aps_novel.items()}
-            ret["bbox"].update({
-                "nAP": np.mean(list(mAP_novel.values())), "nAP50": mAP_novel[50],
-                "nAP75": mAP_novel[75]
-            })
+            ret["bbox"].update(
+                {"nAP": np.mean(list(mAP_novel.values())), "nAP50": mAP_novel[50], "nAP75": mAP_novel[75]}
+            )
 
         # write per class AP to logger
         per_class_res = {self._class_names[idx]: ap for idx, ap in enumerate(aps[50])}
 
-        self._logger.info("Evaluate per-class mAP50:\n"+create_small_table(per_class_res))
-        self._logger.info("Evaluate overall bbox:\n"+create_small_table(ret["bbox"]))
+        self._logger.info("Evaluate per-class mAP50:\n" + create_small_table(per_class_res))
+        self._logger.info("Evaluate overall bbox:\n" + create_small_table(ret["bbox"]))
         return ret
 
 

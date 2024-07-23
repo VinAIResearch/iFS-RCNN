@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
-import numpy as np
-import cv2
-import tqdm
-from fvcore.common.file_io import PathManager
-
 import argparse
 import json
 import os
 from collections import defaultdict
+
+import cv2
+import numpy as np
+import tqdm
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import Boxes, BoxMode, Instances
 from detectron2.utils.logger import setup_logger
 from detectron2.utils.visualizer import Visualizer
+from fvcore.common.file_io import PathManager
 
 
 def create_instances(predictions, image_size):
@@ -25,9 +25,7 @@ def create_instances(predictions, image_size):
     bbox = np.asarray([predictions[i]["bbox"] for i in chosen])
     bbox = BoxMode.convert(bbox, BoxMode.XYWH_ABS, BoxMode.XYXY_ABS)
 
-    labels = np.asarray(
-        [dataset_id_map(predictions[i]["category_id"]) for i in chosen]
-    )
+    labels = np.asarray([dataset_id_map(predictions[i]["category_id"]) for i in chosen])
 
     ret.scores = score
     ret.pred_boxes = Boxes(bbox)
@@ -44,13 +42,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="A script that visualizes the json predictions from COCO or LVIS dataset."
     )
-    parser.add_argument(
-        "--input", required=True, help="JSON file produced by the model"
-    )
+    parser.add_argument("--input", required=True, help="JSON file produced by the model")
     parser.add_argument("--output", required=True, help="output directory")
-    parser.add_argument(
-        "--dataset", help="name of the dataset", default="coco_2017_val"
-    )
+    parser.add_argument("--dataset", help="name of the dataset", default="coco_2017_val")
     parser.add_argument(
         "--conf-threshold",
         default=0.5,
@@ -90,9 +84,7 @@ if __name__ == "__main__":
         img = cv2.imread(dic["file_name"], cv2.IMREAD_COLOR)[:, :, ::-1]
         basename = os.path.basename(dic["file_name"])
 
-        predictions = create_instances(
-            pred_by_image[dic["image_id"]], img.shape[:2]
-        )
+        predictions = create_instances(pred_by_image[dic["image_id"]], img.shape[:2])
         vis = Visualizer(img, metadata)
         vis_pred = vis.draw_instance_predictions(predictions).get_image()
 
